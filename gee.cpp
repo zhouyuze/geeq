@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include <iostream>
+#include <algorithm>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace arma;
@@ -68,25 +68,25 @@ double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
             double numerator = 0;
             double denominator = -p;
             vec r = resid;
+            // moment estimation for alpha
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
-                int scope = end - start + 1;
+                int size = end - start + 1;
 
                 vec tmp = r.subvec(start, end);
                 vec R = tmp * tmp.t();
                 numerator += sum(R) - sum(diagvec(R));
-                denominator += scope * (scope - 1);
+                denominator += size * (size - 1);
 
-                start = end + 1;
+                start = cluster_bound[i];
             }
-
             alpha = numerator / denominator;
+
+            // update the correlation matrix
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
-
                 Cor.submat(start, start, end, end).fill(alpha);
-
-                start = end + 1;
+                start = cluster_bound[i];
             }
             Cor.diag().fill(1);
             break;
@@ -94,10 +94,12 @@ double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
         case AR1: {
             vec next_resid = resid;
             next_resid.head(N - 1) = next_resid.tail(N - 1);
+            // set the resid value at cluster bound to zero
             next_resid.elem(cluster_bound - 1) = zeros<vec>(n);
 
             alpha = sum(resid % next_resid) / (N - n) * phi;
 
+            // update the correlation matrix
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
                 Cor.submat(start, start, end, end).diag(1).fill(alpha);
@@ -110,24 +112,39 @@ double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
 }
 
 void update_Beta(vec &Beta, const mat &X, const vec &Y,
-                 const mat &Cor, const vec &mu, const vec &deriv,
-                 const vec &var, double phi) {
+                 mat &Cor, const vec &mu, const vec &deriv,
+                 const vec &var, const uvec &cluster_bound, double phi) {
     mat D = diagmat(deriv) * X;
-    mat std_err = diagmat(sqrt(var));
-    mat invV = (std_err * Cor * std_err / phi).i();
+    vec std_err = sqrt(var);
 
-    mat hessian = D.t() * invV * D;
-    mat score = D.t() * invV * (Y - mu);
+    mat hessian = zeros<mat>(X.n_cols, X.n_cols);
+    vec score = zeros<vec>(X.n_cols);
+    vec err = Y - mu;
+
+    for (int i = 0, start = 0; i < cluster_bound.n_elem; i++) {
+        int end = cluster_bound[i] - 1;
+
+        mat sub_sqrt_A = diagmat(std_err.subvec(start, end));
+        mat sub_sqrt_cor = Cor.submat(start, start, end, end);
+        mat sub_inverse_var = (sub_sqrt_A * sub_sqrt_cor * sub_sqrt_A / phi).i();
+        mat sub_D = D.rows(start, end);
+
+        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
+
+        start = cluster_bound[i];
+    }
+
     vec delta_beta = hessian.i() * score;
 
     Beta = Beta + delta_beta;
 }
 
-RO gee_iteration(const mat X, const vec Y, const uvec clusterSizes,
+RO gee_iteration(const mat X, const vec Y, const uvec cluster_sizes,
                         Family funcs, WorkCor type, int maxit) {
 
-    uvec cluster_bound = cumsum(clusterSizes);
-    mat cor = eye<mat>(sum(clusterSizes), sum(clusterSizes));
+    uvec cluster_bound = cumsum(cluster_sizes);
+    mat cor = eye<mat>(sum(cluster_sizes), sum(cluster_sizes));
     vec beta(X.n_cols, fill::zeros);
     beta[0] = mean(Y);
 
@@ -151,7 +168,7 @@ RO gee_iteration(const mat X, const vec Y, const uvec clusterSizes,
 
         phi = update_Phi(resid, X.n_rows - X.n_cols);
         alpha = update_WorkCor(cor, resid, cluster_bound, X.n_cols, phi, type);
-        update_Beta(beta, X, Y, cor, mu, deriv, var, phi);
+        update_Beta(beta, X, Y, cor, mu, deriv, var, cluster_bound, phi);
     }
 
     RO result(beta, alpha, phi);
