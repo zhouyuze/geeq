@@ -2,6 +2,7 @@
 #include <iostream>
 
 // [[Rcpp::depends(RcppArmadillo)]]
+using namespace arma;
 
 enum WorkCor {
     Independent,
@@ -22,39 +23,39 @@ public:
             variancer((SEXP)family_obj["variance"]),
             mu_etar((SEXP)family_obj["mu.eta"])
     {}
-    arma::vec link_fun(const arma::vec mu) {
-        return Rcpp::as<arma::vec>(link_funr(mu));
+    vec link_fun(const vec mu) {
+        return Rcpp::as<vec>(link_funr(mu));
     }
-    arma::vec link_inv(const arma::vec eta) {
-        return Rcpp::as<arma::vec>(link_invr(eta));
+    vec link_inv(const vec eta) {
+        return Rcpp::as<vec>(link_invr(eta));
     }
-    arma::vec variance(const arma::vec mu) {
-        return Rcpp::as<arma::vec>(variancer(mu));
+    vec variance(const vec mu) {
+        return Rcpp::as<vec>(variancer(mu));
     }
-    arma::vec mu_eta(const arma::vec eta) {
-        return Rcpp::as<arma::vec>(mu_etar(eta));
+    vec mu_eta(const vec eta) {
+        return Rcpp::as<vec>(mu_etar(eta));
     }
 };
 
 class RO {
 public:
-    arma::vec beta;
+    vec beta;
     double alpha;
     double phi;
-    RO(arma::vec Beta, double Alpha, double Phi);
+    RO(vec Beta, double Alpha, double Phi);
 };
 
-RO::RO(arma::vec Beta, double Alpha, double Phi) {
+RO::RO(vec Beta, double Alpha, double Phi) {
     beta = Beta;
     alpha = Alpha;
     phi = Phi;
 }
 
-double update_Phi(const arma::vec &resid, int denominator) {
+double update_Phi(const vec &resid, int denominator) {
     return denominator / sum(resid % resid);
 }
 
-double update_WorkCor(arma::mat &Cor, const arma::vec &resid, const arma::uvec cluster_bound,
+double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
                     int p, double phi, WorkCor type) {
     int N = resid.n_elem;
     int n = cluster_bound.n_elem;
@@ -64,22 +65,22 @@ double update_WorkCor(arma::mat &Cor, const arma::vec &resid, const arma::uvec c
             break;
         }
         case Exchangable: {
-            double Sum = 0;
+            double numerator = 0;
             double denominator = -p;
-            arma::vec r = resid;
+            vec r = resid;
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
                 int scope = end - start + 1;
 
-                arma::vec tmp = r.subvec(start, end);
-                arma::vec R = tmp * tmp.t();
-                Sum += sum(R) - sum(diagvec(R));
+                vec tmp = r.subvec(start, end);
+                vec R = tmp * tmp.t();
+                numerator += sum(R) - sum(diagvec(R));
                 denominator += scope * (scope - 1);
 
                 start = end + 1;
             }
 
-            alpha = Sum / denominator;
+            alpha = numerator / denominator;
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
 
@@ -91,9 +92,9 @@ double update_WorkCor(arma::mat &Cor, const arma::vec &resid, const arma::uvec c
             break;
         }
         case AR1: {
-            arma::vec next_resid = resid;
+            vec next_resid = resid;
             next_resid.head(N - 1) = next_resid.tail(N - 1);
-            next_resid.elem(cluster_bound - 1) = arma::zeros<arma::vec>(n);
+            next_resid.elem(cluster_bound - 1) = zeros<vec>(n);
 
             alpha = sum(resid % next_resid) / (N - n) * phi;
 
@@ -108,26 +109,26 @@ double update_WorkCor(arma::mat &Cor, const arma::vec &resid, const arma::uvec c
     return alpha;
 }
 
-void update_Beta(arma::vec &Beta, const arma::mat &X, const arma::vec &Y,
-                 const arma::mat &Cor, const arma::vec &mu, const arma::vec &deriv,
-                 const arma::vec &var, double phi) {
-    arma::mat D = diagmat(deriv) * X;
-    arma::mat std_err = diagmat(sqrt(var));
-    arma::mat invV = (std_err * Cor * std_err / phi).i();
+void update_Beta(vec &Beta, const mat &X, const vec &Y,
+                 const mat &Cor, const vec &mu, const vec &deriv,
+                 const vec &var, double phi) {
+    mat D = diagmat(deriv) * X;
+    mat std_err = diagmat(sqrt(var));
+    mat invV = (std_err * Cor * std_err / phi).i();
 
-    arma::mat hessian = D.t() * invV * D;
-    arma::mat score = D.t() * invV * (Y - mu);
-    arma::vec delta_beta = hessian.i() * score;
+    mat hessian = D.t() * invV * D;
+    mat score = D.t() * invV * (Y - mu);
+    vec delta_beta = hessian.i() * score;
 
     Beta = Beta + delta_beta;
 }
 
-RO gee_iteration(const arma::mat X, const arma::vec Y, const arma::uvec clusterSizes,
+RO gee_iteration(const mat X, const vec Y, const uvec clusterSizes,
                         Family funcs, WorkCor type, int maxit) {
 
-    arma::uvec cluster_bound = arma::cumsum(clusterSizes);
-    arma::mat cor = arma::eye<arma::mat>(sum(clusterSizes), sum(clusterSizes));
-    arma::vec beta(X.n_cols, arma::fill::zeros);
+    uvec cluster_bound = cumsum(clusterSizes);
+    mat cor = eye<mat>(sum(clusterSizes), sum(clusterSizes));
+    vec beta(X.n_cols, fill::zeros);
     beta[0] = mean(Y);
 
     bool stop = false;
@@ -141,12 +142,12 @@ RO gee_iteration(const arma::mat X, const arma::vec Y, const arma::uvec clusterS
             stop = true;
         }
 
-        arma::vec Beta_old = beta;
-        arma::vec eta = X * beta;
-        arma::vec mu = funcs.link_inv(eta);
-        arma::vec var = funcs.variance(mu);
-        arma::vec deriv = funcs.mu_eta(eta);
-        arma::vec resid = (Y - mu) / arma::sqrt(var);
+        vec Beta_old = beta;
+        vec eta = X * beta;
+        vec mu = funcs.link_inv(eta);
+        vec var = funcs.variance(mu);
+        vec deriv = funcs.mu_eta(eta);
+        vec resid = (Y - mu) / sqrt(var);
 
         phi = update_Phi(resid, X.n_rows - X.n_cols);
         alpha = update_WorkCor(cor, resid, cluster_bound, X.n_cols, phi, type);
@@ -159,9 +160,9 @@ RO gee_iteration(const arma::mat X, const arma::vec Y, const arma::uvec clusterS
 
 // [[Rcpp::export]]
 Rcpp::List gee(SEXP ys, SEXP Xs, SEXP clusterSizes, SEXP family_objs) {
-    arma::mat X = Rcpp::as<arma::mat>(Xs);
-    arma::vec y = Rcpp::as<arma::vec>(ys);
-    arma::uvec cs = Rcpp::as<arma::uvec>(clusterSizes);
+    mat X = Rcpp::as<mat>(Xs);
+    vec y = Rcpp::as<vec>(ys);
+    uvec cs = Rcpp::as<uvec>(clusterSizes);
     Family family(Rcpp::as<Rcpp::List>(family_objs));
 
     RO result = gee_iteration(X, y, cs, family, AR1, 20);
