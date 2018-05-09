@@ -1,6 +1,3 @@
-library(Rcpp)
-library(RcppArmadillo)
-
 generatedata <- function(beta,alpha,gamma,X,T,n)  {
   mean.vec <- exp(crossprod(t(X),beta))
   y <- matrix(0,nrow=n,ncol=T)
@@ -29,5 +26,4 @@ y <- testdat$count
 X <- cbind(rep(1, 1000), testdat$time)
 clusterSize <- rep(5, 200)
 
-sourceCpp("gee.cpp")
-gee(y, X, clusterSize, poisson)
+gee(y, X, clusterSize, poisson())

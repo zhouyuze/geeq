@@ -1,55 +1,7 @@
-#include <RcppArmadillo.h>
-#include <algorithm>
+#include "gee.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace arma;
-
-enum WorkCor {
-    Independent,
-    AR1,
-    Exchangable
-};
-
-class Family {
-private:
-    Rcpp::Function link_funr;
-    Rcpp::Function link_invr;
-    Rcpp::Function variancer;
-    Rcpp::Function mu_etar;
-public:
-    explicit Family(Rcpp::List family_obj):
-            link_funr((SEXP)family_obj["linkfun"]),
-            link_invr((SEXP)family_obj["linkinv"]),
-            variancer((SEXP)family_obj["variance"]),
-            mu_etar((SEXP)family_obj["mu.eta"])
-    {}
-    vec link_fun(const vec mu) {
-        return Rcpp::as<vec>(link_funr(mu));
-    }
-    vec link_inv(const vec eta) {
-        return Rcpp::as<vec>(link_invr(eta));
-    }
-    vec variance(const vec mu) {
-        return Rcpp::as<vec>(variancer(mu));
-    }
-    vec mu_eta(const vec eta) {
-        return Rcpp::as<vec>(mu_etar(eta));
-    }
-};
-
-class RO {
-public:
-    vec beta;
-    double alpha;
-    double phi;
-    RO(vec Beta, double Alpha, double Phi);
-};
-
-RO::RO(vec Beta, double Alpha, double Phi) {
-    beta = Beta;
-    alpha = Alpha;
-    phi = Phi;
-}
 
 double update_Phi(const vec &resid, int denominator) {
     return denominator / sum(resid % resid);
@@ -175,16 +127,5 @@ RO gee_iteration(const mat X, const vec Y, const uvec cluster_sizes,
     return result;
 }
 
-// [[Rcpp::export]]
-Rcpp::List gee(SEXP ys, SEXP Xs, SEXP clusterSizes, SEXP family_objs) {
-    mat X = Rcpp::as<mat>(Xs);
-    vec y = Rcpp::as<vec>(ys);
-    uvec cs = Rcpp::as<uvec>(clusterSizes);
-    Family family(Rcpp::as<Rcpp::List>(family_objs));
 
-    RO result = gee_iteration(X, y, cs, family, AR1, 20);
-    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
-                              Rcpp::Named("alpha")=result.alpha,
-                              Rcpp::Named("phi")=result.phi);
-}
 
