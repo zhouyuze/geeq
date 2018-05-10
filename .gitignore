@@ -1,0 +1,10 @@
+.DS_Store
+*/.DS_Store
+geeq.Rproj
+
+.Rbuildignore
+src/*.o
+src/*.so
+.Rproj.user/
+.idea/
+

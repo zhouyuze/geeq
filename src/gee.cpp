@@ -1,6 +1,7 @@
 #include "gee.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
+
 using namespace arma;
 
 double update_Phi(const vec &resid, int denominator) {
@@ -126,6 +127,15 @@ RO gee_iteration(const mat X, const vec Y, const uvec cluster_sizes,
     RO result(beta, alpha, phi);
     return result;
 }
+
+// [[Rcpp::export]]
+Rcpp::List gee(arma::vec y, arma::mat X, arma::uvec clusterSizes, Rcpp::List family_objs) {
+    Family family(family_objs);
+    RO result = gee_iteration(X, y, clusterSizes, family, AR1, 20);
+    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
+                              Rcpp::Named("alpha")=result.alpha,
+                              Rcpp::Named("phi")=result.phi);
+ }
 
 
 
