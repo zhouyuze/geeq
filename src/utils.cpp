@@ -2,11 +2,12 @@
 
 using namespace arma;
 
-RO::RO(vec Beta, double Alpha, double Phi) {
-    beta = Beta;
-    alpha = Alpha;
-    phi = Phi;
-}
+RO::RO(vec Beta, double Alpha, double Phi, bool Converged):
+        beta(Beta),
+        alpha(Alpha),
+        phi(Phi),
+        coveraged(Converged)
+{}
 
 Family::Family(Rcpp::List family_obj):
         link_funr((SEXP) family_obj["linkfun"]),

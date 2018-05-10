@@ -5,3 +5,7 @@ gee <- function(y, X, clusterSizes, family_objs) {
     .Call(`_geeq_gee`, y, X, clusterSizes, family_objs)
 }
 
+pgee <- function(y, X, clusterSizes, family_objs, pindex, lambda) {
+    .Call(`_geeq_pgee`, y, X, clusterSizes, family_objs, pindex, lambda)
+}
+
