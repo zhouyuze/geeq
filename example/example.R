@@ -5,7 +5,7 @@ generatedata <- function(beta,alpha,gamma,X,T,n)  {
   for (i in 1:n)  {
     for (t in 2:T)  {
       innovation.mean <- mean.vec[t] - alpha*(sqrt(mean.vec[t]*mean.vec[t-1]))
-      I <- rnbinom(1,mu= innovation.mean,size= innovation.mean/gamma)           
+      I <- rnbinom(1,mu= innovation.mean,size= innovation.mean/gamma)
       first.shape <- alpha*sqrt(mean.vec[t]*mean.vec[t-1])/gamma
       second.shape <- mean.vec[t-1]/gamma - first.shape
       u <- rbeta(1,shape1 = first.shape,shape2=second.shape)
@@ -25,5 +25,5 @@ testdat <- generatedata(beta=c(1,.5),alpha=.2,gamma=.5,X=X,T=5,n=200)
 y <- testdat$count
 X <- cbind(rep(1, 1000), testdat$time)
 clusterSize <- rep(5, 200)
-
-gee(y, X, clusterSize, poisson())
+family <- poisson()
+gee_c(y, X, rep(0, length(y)), clusterSize, family, "ar1", c(family$linkfun(mean(y)), 0), 0, 1, FALSE, 30, 0.0001)

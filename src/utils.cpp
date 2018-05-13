@@ -2,7 +2,7 @@
 
 using namespace arma;
 
-RO::RO(vec Beta, double Alpha, double Phi, bool Converged):
+RO::RO(vec Beta, vec Alpha, double Phi, bool Converged):
         beta(Beta),
         alpha(Alpha),
         phi(Phi),

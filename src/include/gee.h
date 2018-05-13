@@ -3,10 +3,8 @@
 
 using namespace arma;
 
-#define CONVERGE_VALUE (0.001)
-#define EPS (0.000001)
 enum WorkCor {
-    Independent,
+    Independence,
     AR1,
     Exchangable
 };
@@ -32,11 +30,14 @@ public:
 class RO {
 public:
     vec beta;
-    double alpha;
+    vec alpha;
     double phi;
     bool coveraged;
-    RO(vec Beta, double Alpha, double Phi, bool Converged);
+    RO(vec Beta, vec Alpha, double Phi, bool Converged);
 };
 
-RO gee_iteration(const mat X, const vec Y, const uvec cluster_sizes,
-                 Family funcs, WorkCor type, int maxit);
+RO gee_iteration(const vec &Y, const mat &X, const vec &offset, const uvec &cluster_sizes,
+                 Family &funcs, WorkCor type, const mat &cor_mat,
+                 const vec &init_beta, const vec &init_alpha, double init_phi, bool scale_fix,
+                 bool penalty, double lambda, const uvec &pindex, double eps,
+                 int maxit, double tol);

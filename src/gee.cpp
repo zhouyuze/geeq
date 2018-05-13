@@ -1,6 +1,4 @@
 #include "gee.h"
-#include <algorithm>
-// [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace arma;
 
@@ -8,13 +6,13 @@ double update_Phi(const vec &resid, int denominator) {
     return denominator / sum(resid % resid);
 }
 
-double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
+vec update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
                     int p, double phi, WorkCor type) {
     int N = resid.n_elem;
     int n = cluster_bound.n_elem;
     double alpha;
     switch (type) {
-        case Independent: {
+        case Independence: {
             break;
         }
         case Exchangable: {
@@ -61,7 +59,8 @@ double update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
             break;
         }
     }
-    return alpha;
+    vec result = {alpha};
+    return result;
 }
 
 vec q_scad(vec beta, double lambda, double a=3.7) {
@@ -79,16 +78,16 @@ vec q_scad(vec beta, double lambda, double a=3.7) {
 void update_Beta(vec &beta, const mat &X, const vec &err,
                  mat &Cor, const vec &deriv, const vec &var,
                  const uvec &cluster_bound, double phi, bool penalty = false,
-                 const uvec &pindex = zeros<uvec>(0), double lambda = 0) {
+                 const uvec &pindex = uvec(), double lambda = 0, double eps = 0) {
     mat D = diagmat(deriv) * X;
     vec std_err = sqrt(var);
 
     mat hessian = zeros<mat>(X.n_cols, X.n_cols);
     vec score = zeros<vec>(X.n_cols);
     vec delta_beta = zeros<vec>(X.n_cols);
-    vec E = zeros<vec>(X.n_cols);
+    vec E = vec();
     if (penalty) {
-        E = q_scad(beta, lambda) / (abs(beta) + EPS);
+        E = q_scad(beta, lambda) / (abs(beta) + eps);
         if (pindex.n_elem != 0) {
             E.elem(pindex) = zeros<vec>(pindex.n_cols);
         }
@@ -119,39 +118,49 @@ void update_Beta(vec &beta, const mat &X, const vec &err,
     beta = beta + delta_beta;
 }
 
-RO gee_iteration(const mat &X, const vec &Y, const uvec &cluster_sizes,
-                 Family funcs, WorkCor type, int maxit = 30,
-                 bool penalty = false, const uvec &pindex = zeros<uvec>(0), double lambda = 0) {
+void init_correlation(mat &cor, WorkCor, const vec &init_alpha, const mat &cor_mat) {
+    // TODO initialize correlation matrix;
+}
+
+RO gee_iteration(const vec &Y, const mat &X, const vec &offset, const uvec &cluster_sizes,
+                 Family &funcs, WorkCor type, const mat &cor_mat,
+                 const vec &init_beta, const vec &init_alpha, double init_phi, bool scale_fix,
+                 bool penalty, double lambda, const uvec &pindex, double eps,
+                 int maxit, double tol) {
     uvec cluster_bound = cumsum(cluster_sizes);
     mat cor = eye<mat>(sum(cluster_sizes), sum(cluster_sizes));
-    vec beta(X.n_cols, fill::zeros);
-    beta[0] = mean(Y);
+    init_correlation(cor, type, init_alpha, cor_mat);
+
+    vec beta = init_beta;
+    vec alpha = init_alpha;
+    double phi = init_phi;
 
     bool stop = false;
     bool converged = false;
     int count = 0;
 
-    double phi = 0, alpha = 0;
     while(!stop) {
         count++;
-        vec Beta_old = beta;
+        vec beta_old = beta;
         vec eta = X * beta;
         vec mu = funcs.link_inv(eta);
         vec var = funcs.variance(mu);
         vec deriv = funcs.mu_eta(eta);
         vec resid = (Y - mu) / sqrt(var);
 
-        phi = update_Phi(resid, X.n_rows - X.n_cols);
+        if (!scale_fix) {
+            phi = update_Phi(resid, X.n_rows - X.n_cols);
+        }
 
         alpha = update_WorkCor(cor, resid, cluster_bound, X.n_cols, phi, type);
 
         if (penalty) {
             update_Beta(beta, X, Y - mu, cor, deriv, var, cluster_bound, phi,
-                        penalty, pindex, lambda);
+                        penalty, pindex, lambda, eps);
         } else {
             update_Beta(beta, X, Y - mu, cor, deriv, var, cluster_bound, phi);
         }
-        if(sum(abs(Beta_old - beta)) < CONVERGE_VALUE) {
+        if(sum(abs(beta_old - beta)) < tol) {
             converged = true;
             stop = true;
         } else if (count >= maxit){
@@ -162,25 +171,3 @@ RO gee_iteration(const mat &X, const vec &Y, const uvec &cluster_sizes,
     RO result(beta, alpha, phi, converged);
     return result;
 }
-
-// [[Rcpp::export]]
-Rcpp::List gee(const arma::vec y, const arma::mat X, const arma::uvec clusterSizes, const Rcpp::List family_objs) {
-    Family family(family_objs);
-    RO result = gee_iteration(X, y, clusterSizes, family, AR1);
-    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
-                              Rcpp::Named("alpha")=result.alpha,
-                              Rcpp::Named("phi")=result.phi);
-}
-
-// [[Rcpp::export]]
-Rcpp::List pgee(const arma::vec y, const arma::mat X, const arma::uvec clusterSizes,
-                const Rcpp::List family_objs, const arma::uvec pindex, double lambda) {
-    Family family(family_objs);
-    RO result = gee_iteration(X, y, clusterSizes, family, AR1, 30, true, pindex, lambda);
-    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
-                              Rcpp::Named("alpha")=result.alpha,
-                              Rcpp::Named("phi")=result.phi);
-}
-
-
-
