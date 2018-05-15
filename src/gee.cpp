@@ -1,12 +1,13 @@
 #include "gee.h"
 
 using namespace arma;
+using namespace std;
 
 double update_Phi(const vec &resid, int denominator) {
     return denominator / sum(resid % resid);
 }
 
-vec update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
+vec update_WorkCor(vector<mat> &cluster_cor, const vec &resid, const uvec cluster_bound,
                     int p, double phi, WorkCor type) {
     int N = resid.n_elem;
     int n = cluster_bound.n_elem;
@@ -25,8 +26,8 @@ vec update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
                 int size = end - start + 1;
 
                 vec tmp = r.subvec(start, end);
-                vec R = tmp * tmp.t();
-                numerator += sum(R) - sum(diagvec(R));
+                mat R = tmp * tmp.t();
+                numerator += accu(R) - sum(diagvec(R));
                 denominator += size * (size - 1);
 
                 start = cluster_bound[i];
@@ -36,10 +37,10 @@ vec update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
             // update the correlation matrix
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
-                Cor.submat(start, start, end, end).fill(alpha);
+                cluster_cor[i].fill(alpha);
+                cluster_cor[i].diag().fill(1);
                 start = cluster_bound[i];
             }
-            Cor.diag().fill(1);
             break;
         }
         case AR1: {
@@ -53,8 +54,8 @@ vec update_WorkCor(mat &Cor, const vec &resid, const uvec cluster_bound,
             // update the correlation matrix
             for (int i = 0, start = 0; i < n; i++) {
                 int end = cluster_bound[i] - 1;
-                Cor.submat(start, start, end, end).diag(1).fill(alpha);
-                Cor.submat(start, start, end, end).diag(-1).fill(alpha);
+                cluster_cor[i].diag(1).fill(alpha);
+                cluster_cor[i].diag(-1).fill(alpha);
             }
             break;
         }
@@ -75,11 +76,11 @@ vec q_scad(vec beta, double lambda, double a=3.7) {
     return beta;
 }
 
-void update_Beta(vec &beta, const mat &X, const vec &err,
-                 mat &Cor, const vec &deriv, const vec &var,
+void update_Beta(vec &beta, mat &X, const vec &err,
+                 vector<mat> &cluster_cor, const vec &deriv, const vec &var,
                  const uvec &cluster_bound, double phi, bool penalty = false,
                  const uvec &pindex = uvec(), double lambda = 0, double eps = 0) {
-    mat D = diagmat(deriv) * X;
+    mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
 
     mat hessian = zeros<mat>(X.n_cols, X.n_cols);
@@ -96,40 +97,41 @@ void update_Beta(vec &beta, const mat &X, const vec &err,
     for (int i = 0, start = 0; i < cluster_bound.n_elem; i++) {
         int end = cluster_bound[i] - 1;
 
-        mat sub_sqrt_A = diagmat(std_err.subvec(start, end));
-        mat sub_sqrt_cor = Cor.submat(start, start, end, end);
-        mat sub_inverse_var = (sub_sqrt_A * sub_sqrt_cor * sub_sqrt_A / phi).i();
+        vec sub_sqrt_A = std_err.subvec(start, end);
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
 
         hessian += sub_D.t() * sub_inverse_var * sub_D;
         score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
-
 
         start = cluster_bound[i];
     }
 
     if (penalty) {
         int N = cluster_bound.n_elem;
-        delta_beta = (hessian + N * diagmat(E)).i() * (score - N * diagmat(E) * beta);
+        delta_beta = solve(hessian + N * diagmat(E), score - N * (E % beta));
     } else {
-        delta_beta = hessian.i() * score;
+        delta_beta = solve(hessian, score);
     }
 
     beta = beta + delta_beta;
 }
 
-void init_correlation(mat &cor, WorkCor, const vec &init_alpha, const mat &cor_mat) {
-    // TODO initialize correlation matrix;
+void init_correlation(vector<mat> &cluster_cors, const uvec &cluster_sizes, WorkCor type,
+                      const vec &init_alpha, const mat &cor_mat) {
+    for (int i = 0; i < cluster_sizes.n_elem; i++) {
+        cluster_cors.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
+    }
 }
 
-RO gee_iteration(const vec &Y, const mat &X, const vec &offset, const uvec &cluster_sizes,
+RO gee_iteration(const vec &Y, mat &X, const vec &offset, const uvec &cluster_sizes,
                  Family &funcs, WorkCor type, const mat &cor_mat,
                  const vec &init_beta, const vec &init_alpha, double init_phi, bool scale_fix,
                  bool penalty, double lambda, const uvec &pindex, double eps,
                  int maxit, double tol) {
     uvec cluster_bound = cumsum(cluster_sizes);
-    mat cor = eye<mat>(sum(cluster_sizes), sum(cluster_sizes));
-    init_correlation(cor, type, init_alpha, cor_mat);
+    vector<mat> cluster_cors;
+    init_correlation(cluster_cors, cluster_sizes, type, init_alpha, cor_mat);
 
     vec beta = init_beta;
     vec alpha = init_alpha;
@@ -152,14 +154,15 @@ RO gee_iteration(const vec &Y, const mat &X, const vec &offset, const uvec &clus
             phi = update_Phi(resid, X.n_rows - X.n_cols);
         }
 
-        alpha = update_WorkCor(cor, resid, cluster_bound, X.n_cols, phi, type);
+        alpha = update_WorkCor(cluster_cors, resid, cluster_bound, X.n_cols, phi, type);
 
         if (penalty) {
-            update_Beta(beta, X, Y - mu, cor, deriv, var, cluster_bound, phi,
+            update_Beta(beta, X, Y - mu, cluster_cors, deriv, var, cluster_bound, phi,
                         penalty, pindex, lambda, eps);
         } else {
-            update_Beta(beta, X, Y - mu, cor, deriv, var, cluster_bound, phi);
+            update_Beta(beta, X, Y - mu, cluster_cors, deriv, var, cluster_bound, phi);
         }
+
         if(sum(abs(beta_old - beta)) < tol) {
             converged = true;
             stop = true;

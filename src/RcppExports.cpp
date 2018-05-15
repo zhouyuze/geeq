@@ -7,13 +7,13 @@
 using namespace Rcpp;
 
 // pgee_c
-Rcpp::List pgee_c(const arma::vec Y, const arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix, double lambda, const arma::uvec pindex, double eps, int maxit, double tol);
+Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix, double lambda, const arma::uvec pindex, double eps, int maxit, double tol);
 RcppExport SEXP _geeq_pgee_c(SEXP YSEXP, SEXP XSEXP, SEXP offsetSEXP, SEXP cluster_sizesSEXP, SEXP family_objsSEXP, SEXP corstrSEXP, SEXP init_betaSEXP, SEXP init_alphaSEXP, SEXP init_phiSEXP, SEXP scale_fixSEXP, SEXP lambdaSEXP, SEXP pindexSEXP, SEXP epsSEXP, SEXP maxitSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type offset(offsetSEXP);
     Rcpp::traits::input_parameter< const arma::uvec >::type cluster_sizes(cluster_sizesSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List >::type family_objs(family_objsSEXP);
@@ -32,13 +32,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // gee_c
-Rcpp::List gee_c(const arma::vec Y, const arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix, int maxit, double tol);
+Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix, int maxit, double tol);
 RcppExport SEXP _geeq_gee_c(SEXP YSEXP, SEXP XSEXP, SEXP offsetSEXP, SEXP cluster_sizesSEXP, SEXP family_objsSEXP, SEXP corstrSEXP, SEXP init_betaSEXP, SEXP init_alphaSEXP, SEXP init_phiSEXP, SEXP scale_fixSEXP, SEXP maxitSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type offset(offsetSEXP);
     Rcpp::traits::input_parameter< const arma::uvec >::type cluster_sizes(cluster_sizesSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List >::type family_objs(family_objsSEXP);

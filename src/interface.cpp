@@ -2,7 +2,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // [[Rcpp::export]]
-Rcpp::List pgee_c(const arma::vec Y, const arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
+Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
                   const Rcpp::List family_objs, const std::string corstr,
                   const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                   double lambda, const arma::uvec pindex, double eps, int maxit, double tol) {
@@ -28,7 +28,7 @@ Rcpp::List pgee_c(const arma::vec Y, const arma::mat X, const arma::vec offset, 
 }
 
 // [[Rcpp::export]]
-Rcpp::List gee_c(const arma::vec Y, const arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
+Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
                  const Rcpp::List family_objs, const std::string corstr,
                  const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                  int maxit, double tol) {

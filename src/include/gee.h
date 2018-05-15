@@ -36,7 +36,7 @@ public:
     RO(vec Beta, vec Alpha, double Phi, bool Converged);
 };
 
-RO gee_iteration(const vec &Y, const mat &X, const vec &offset, const uvec &cluster_sizes,
+RO gee_iteration(const vec &Y, mat &X, const vec &offset, const uvec &cluster_sizes,
                  Family &funcs, WorkCor type, const mat &cor_mat,
                  const vec &init_beta, const vec &init_alpha, double init_phi, bool scale_fix,
                  bool penalty, double lambda, const uvec &pindex, double eps,
