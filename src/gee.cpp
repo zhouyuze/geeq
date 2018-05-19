@@ -150,7 +150,7 @@ double GEE_Para::update_beta_penalty(Penalty_Options op) {
     mat hessian = zeros<mat>(p, p);
     vec score = zeros<vec>(p);
     vec delta_beta = zeros<vec>(p);
-    vec err = y - mu;
+    vec S = y - mu;
 
     vec E = q_scad(op.lambda) / (abs(beta) + op.eps);
     if (op.pindex.n_elem != 0) {
@@ -166,7 +166,7 @@ double GEE_Para::update_beta_penalty(Penalty_Options op) {
         mat sub_D = D.rows(start, end);
 
         hessian += sub_D.t() * sub_inverse_var * sub_D;
-        score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
+        score += sub_D.t() * sub_inverse_var * (S.subvec(start, end));
     }
 
     delta_beta = solve(hessian + n * diagmat(E), score - n * (E % beta));
@@ -206,4 +206,76 @@ vec GEE_Para::get_beta() {
 
 double GEE_Para::get_phi() {
     return this->phi;
+}
+
+mat GEE_Para::get_sandwich() {
+    mat D = X.each_col() % deriv;
+    vec std_err = sqrt(var);
+    vec S = y - mu;
+
+    mat hessian = zeros<mat>(p, p);
+    mat namesand = zeros<mat>(p, p);
+
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0:cluster_bound[i-1];
+        int end = cluster_bound[i] - 1;
+
+        vec sub_sqrt_A = std_err.subvec(start, end);
+        vec sub_S = S.subvec(start, end);
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_D = D.rows(start, end);
+
+        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        namesand += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
+    }
+
+    return solve(hessian, solve(hessian, namesand).t());
+}
+
+double GEE_Para::gaussian_pseudolikelihood() {
+    vec std_err = sqrt(var);
+    vec S = y - mu;
+    double result = 0;
+
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0 : cluster_bound[i - 1];
+        int end = cluster_bound[i] - 1;
+
+        vec sub_sqrt_A = std_err.subvec(start, end);
+        vec sub_S = S.subvec(start, end);
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        result += accu(sub_S.t() * sub_inverse_var * sub_S);
+        result += det(sub_inverse_var);
+    }
+    return result / 2;
+}
+
+vec GEE_Para::geodesic_distance() {
+    vec delta(2);
+
+    mat D = X.each_col() % deriv;
+    vec std_err = sqrt(var);
+    vec S = y - mu;
+
+    mat hessian = zeros<mat>(p, p);
+    mat namesand = zeros<mat>(p, p);
+
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0:cluster_bound[i-1];
+        int end = cluster_bound[i] - 1;
+
+        vec sub_sqrt_A = std_err.subvec(start, end);
+        vec sub_S = S.subvec(start, end);
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_D = D.rows(start, end);
+
+        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        namesand += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
+    }
+
+    mat Q = solve(hessian, namesand);
+    vec eig = eig_sym(Q);
+    delta[0] = sum((eig - 1) % (eig - 1));
+    delta[1] = sum(abs(log(eig)));
+    return delta;
 }

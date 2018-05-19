@@ -25,7 +25,10 @@ Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const 
 
     return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
                               Rcpp::Named("alpha")=gee_para.get_alpha(),
-                              Rcpp::Named("phi")=gee_para.get_phi());
+                              Rcpp::Named("phi")=gee_para.get_phi(),
+                              Rcpp::Named("sandwich")=gee_para.get_sandwich(),
+                              Rcpp::Named("gaussian pseudolikelihood")=gee_para.gaussian_pseudolikelihood(),
+                              Rcpp::Named("geodesic distance")=gee_para.geodesic_distance());
 
 }
 
@@ -52,5 +55,8 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
 
     return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
                               Rcpp::Named("alpha")=gee_para.get_alpha(),
-                              Rcpp::Named("phi")=gee_para.get_phi());
+                              Rcpp::Named("phi")=gee_para.get_phi(),
+                              Rcpp::Named("sandwich")=gee_para.get_sandwich(),
+                              Rcpp::Named("gaussian.pseudolikelihood")=gee_para.gaussian_pseudolikelihood(),
+                              Rcpp::Named("geodesic.distance")=gee_para.geodesic_distance());
 }

@@ -73,6 +73,10 @@ public:
     vec get_beta();
     vec get_alpha();
     double get_phi();
+    mat get_sandwich();
+
+    double gaussian_pseudolikelihood();
+    vec geodesic_distance();
 };
 
 
