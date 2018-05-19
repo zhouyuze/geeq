@@ -27,13 +27,3 @@ public:
 
     vec mu_eta(const vec eta);
 };
-
-class RO {
-public:
-    vec beta;
-    vec alpha;
-    double phi;
-    bool coveraged;
-    RO(vec Beta, vec Alpha, double Phi, bool Converged);
-};
-

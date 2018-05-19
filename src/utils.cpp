@@ -1,14 +1,5 @@
 #include "geeq.h"
 
-using namespace arma;
-
-RO::RO(vec Beta, vec Alpha, double Phi, bool Converged):
-        beta(Beta),
-        alpha(Alpha),
-        phi(Phi),
-        coveraged(Converged)
-{}
-
 Family::Family(Rcpp::List family_obj):
         link_funr((SEXP) family_obj["linkfun"]),
         link_invr((SEXP) family_obj["linkinv"]),
