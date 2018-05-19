@@ -18,12 +18,14 @@ Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const 
         return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
     }
 
-    RO result = gee_iteration(Y, X, offset, cluster_sizes, family, type, arma::mat(),
-                              init_beta, init_alpha, init_phi, scale_fix,
-                              true, lambda, pindex, eps, maxit, tol);
-    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
-                              Rcpp::Named("alpha")=result.alpha,
-                              Rcpp::Named("phi")=result.phi);
+    GEE_Control ctl(scale_fix, maxit, tol, false);
+    Penalty_Options op(lambda, pindex, eps);
+    GEE_Para gee_para(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi);
+    gee_para.iterator_penalty(op);
+
+    return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
+                              Rcpp::Named("alpha")=gee_para.get_alpha(),
+                              Rcpp::Named("phi")=gee_para.get_phi());
 
 }
 
@@ -43,10 +45,12 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
     } else {
         return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
     }
-    RO result = gee_iteration(Y, X, offset, cluster_sizes, family, type, arma::mat(),
-                              init_beta, init_alpha, init_phi, scale_fix,
-                              false, 0, arma::uvec(), 0, maxit, tol);
-    return Rcpp::List::create(Rcpp::Named("beta")=result.beta,
-                              Rcpp::Named("alpha")=result.alpha,
-                              Rcpp::Named("phi")=result.phi);
+
+    GEE_Control ctl(scale_fix, maxit, tol, false);
+    GEE_Para gee_para(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi);
+    gee_para.iterator();
+
+    return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
+                              Rcpp::Named("alpha")=gee_para.get_alpha(),
+                              Rcpp::Named("phi")=gee_para.get_phi());
 }

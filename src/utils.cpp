@@ -1,4 +1,4 @@
-#include "gee.h"
+#include "geeq.h"
 
 using namespace arma;
 

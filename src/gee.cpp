@@ -1,45 +1,99 @@
 #include "gee.h"
 
-using namespace arma;
-using namespace std;
+GEE_Para::GEE_Para(vec y, mat X, vec offset, uvec cluster_sizes,
+                   Family family, WorkCor cor_type, GEE_Control ctl,
+                   vec beta, vec alpha, double phi):
+    y(std::move(y)), X(std::move(X)), offset(std::move(offset)), cluster_bound(cumsum(cluster_sizes)),
+    funcs(std::move(family)), cor_type(cor_type), ctl(ctl),
+    beta(std::move(beta)), alpha(std::move(alpha)), phi(phi),
+    N(this->X.n_rows), p(this->X.n_cols), n(cluster_bound.n_elem) {
+    this->eta = this->X * this->beta;
+    this->mu = funcs.link_inv(this->eta);
+    this->var = funcs.variance(this->mu);
+    this->deriv = funcs.mu_eta(this->eta);
+    this->solved = false;
+    this->converged = false;
 
-double update_Phi(const vec &resid, int denominator) {
-    return denominator / sum(resid % resid);
+    for (int i = 0; i < n; i++) {
+        cluster_cor.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
+    }
 }
 
-vec update_WorkCor(vector<mat> &cluster_cor, const vec &resid, const uvec cluster_bound,
-                    int p, double phi, WorkCor type) {
-    int N = resid.n_elem;
-    int n = cluster_bound.n_elem;
-    double alpha;
-    switch (type) {
+int GEE_Para::iterator() {
+    bool stop = false;
+    int count = 0;
+
+    while(!stop) {
+        count++;
+
+        if (!ctl.scale_fix) {
+            update_phi();
+        }
+        update_alpha();
+        double diff = update_beta();
+
+        if(diff < ctl.tol) {
+            converged = true;
+            stop = true;
+        } else if (count >= ctl.maxit){
+            stop = true;
+        }
+    }
+    return count;
+}
+
+int GEE_Para::iterator_penalty(Penalty_Options op) {
+    bool stop = false;
+    int count = 0;
+
+    while(!stop) {
+        count++;
+        if (!ctl.scale_fix) {
+            update_phi();
+        }
+        update_alpha();
+        double diff = update_beta_penalty(op);
+        if(diff < ctl.tol) {
+            converged = true;
+            stop = true;
+        } else if (count >= ctl.maxit){
+            stop = true;
+        }
+    }
+    return count;
+}
+
+void GEE_Para::update_phi() {
+    vec resid = (y - mu) / sqrt(var);
+    phi = (N - p) / sum(resid % resid);
+}
+
+void GEE_Para::update_alpha() {
+    vec resid = (y - mu) / sqrt(var);
+
+    switch (cor_type) {
         case Independence: {
             break;
         }
         case Exchangable: {
             double numerator = 0;
             double denominator = -p;
-            vec r = resid;
-            // moment estimation for alpha
-            for (int i = 0, start = 0; i < n; i++) {
-                int end = cluster_bound[i] - 1;
-                int size = end - start + 1;
 
-                vec tmp = r.subvec(start, end);
+            // moment estimation for alpha
+            for (int i = 0; i < n; i++) {
+                int size = cluster_bound[i] - (i == 0 ? 0:cluster_bound[i-1]);
+
+                vec tmp = resid.subvec(cluster_bound[i] - size, cluster_bound[i] - 1);
                 mat R = tmp * tmp.t();
                 numerator += accu(R) - sum(diagvec(R));
                 denominator += size * (size - 1);
-
-                start = cluster_bound[i];
             }
-            alpha = numerator / denominator;
+            alpha[0] = numerator / denominator;
 
             // update the correlation matrix
-            for (int i = 0, start = 0; i < n; i++) {
-                int end = cluster_bound[i] - 1;
-                cluster_cor[i].fill(alpha);
+            for (int i = 0; i < n; i++) {
+                cluster_cor[i].fill(alpha[0]);
                 cluster_cor[i].diag().fill(1);
-                start = cluster_bound[i];
             }
             break;
         }
@@ -49,52 +103,29 @@ vec update_WorkCor(vector<mat> &cluster_cor, const vec &resid, const uvec cluste
             // set the resid value at cluster bound to zero
             next_resid.elem(cluster_bound - 1) = zeros<vec>(n);
 
-            alpha = sum(resid % next_resid) / (N - n) * phi;
+            alpha[0] = sum(resid % next_resid) / (N - n) * phi;
 
             // update the correlation matrix
-            for (int i = 0, start = 0; i < n; i++) {
-                int end = cluster_bound[i] - 1;
-                cluster_cor[i].diag(1).fill(alpha);
-                cluster_cor[i].diag(-1).fill(alpha);
+            for (int i = 0; i < n; i++) {
+                cluster_cor[i].diag(1).fill(alpha[0]);
+                cluster_cor[i].diag(-1).fill(alpha[0]);
             }
             break;
         }
     }
-    vec result = {alpha};
-    return result;
 }
 
-vec q_scad(vec beta, double lambda, double a=3.7) {
-    beta.transform([&](double val) {
-        if (val < lambda) {
-            val = lambda;
-        } else if (val < a * lambda) {
-            val = (a * lambda - val) / (a - 1) * lambda;
-        }
-        return val;
-    });
-    return beta;
-}
-
-void update_Beta(vec &beta, mat &X, const vec &err,
-                 vector<mat> &cluster_cor, const vec &deriv, const vec &var,
-                 const uvec &cluster_bound, double phi, bool penalty = false,
-                 const uvec &pindex = uvec(), double lambda = 0, double eps = 0) {
+double GEE_Para::update_beta() {
     mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
 
-    mat hessian = zeros<mat>(X.n_cols, X.n_cols);
-    vec score = zeros<vec>(X.n_cols);
-    vec delta_beta = zeros<vec>(X.n_cols);
-    vec E = vec();
-    if (penalty) {
-        E = q_scad(beta, lambda) / (abs(beta) + eps);
-        if (pindex.n_elem != 0) {
-            E.elem(pindex) = zeros<vec>(pindex.n_cols);
-        }
-    }
+    mat hessian = zeros<mat>(p, p);
+    vec score = zeros<vec>(p);
+    vec delta_beta = zeros<vec>(p);
+    vec err = y - mu;
 
-    for (int i = 0, start = 0; i < cluster_bound.n_elem; i++) {
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0:cluster_bound[i-1];
         int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
@@ -103,74 +134,76 @@ void update_Beta(vec &beta, mat &X, const vec &err,
 
         hessian += sub_D.t() * sub_inverse_var * sub_D;
         score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
-
-        start = cluster_bound[i];
     }
 
-    if (penalty) {
-        int N = cluster_bound.n_elem;
-        delta_beta = solve(hessian + N * diagmat(E), score - N * (E % beta));
-    } else {
-        delta_beta = solve(hessian, score);
-    }
-
+    delta_beta = solve(hessian, score);
     beta = beta + delta_beta;
+    update_intermediate_result();
+
+    return sum(abs(delta_beta));
 }
 
-void init_correlation(vector<mat> &cluster_cors, const uvec &cluster_sizes, WorkCor type,
-                      const vec &init_alpha, const mat &cor_mat) {
-    for (int i = 0; i < cluster_sizes.n_elem; i++) {
-        cluster_cors.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
+double GEE_Para::update_beta_penalty(Penalty_Options op) {
+    mat D = X.each_col() % deriv;
+    vec std_err = sqrt(var);
+
+    mat hessian = zeros<mat>(p, p);
+    vec score = zeros<vec>(p);
+    vec delta_beta = zeros<vec>(p);
+    vec err = y - mu;
+
+    vec E = q_scad(op.lambda) / (abs(beta) + op.eps);
+    if (op.pindex.n_elem != 0) {
+        E.elem(op.pindex) = zeros<vec>(op.pindex.n_elem);
     }
+
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0:cluster_bound[i-1];
+        int end = cluster_bound[i] - 1;
+
+        vec sub_sqrt_A = std_err.subvec(start, end);
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_D = D.rows(start, end);
+
+        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
+    }
+
+    delta_beta = solve(hessian + n * diagmat(E), score - n * (E % beta));
+    beta = beta + delta_beta;
+    update_intermediate_result();
+
+    return sum(delta_beta);
 }
 
-RO gee_iteration(const vec &Y, mat &X, const vec &offset, const uvec &cluster_sizes,
-                 Family &funcs, WorkCor type, const mat &cor_mat,
-                 const vec &init_beta, const vec &init_alpha, double init_phi, bool scale_fix,
-                 bool penalty, double lambda, const uvec &pindex, double eps,
-                 int maxit, double tol) {
-    uvec cluster_bound = cumsum(cluster_sizes);
-    vector<mat> cluster_cors;
-    init_correlation(cluster_cors, cluster_sizes, type, init_alpha, cor_mat);
-
-    vec beta = init_beta;
-    vec alpha = init_alpha;
-    double phi = init_phi;
-
-    bool stop = false;
-    bool converged = false;
-    int count = 0;
-
-    while(!stop) {
-        count++;
-        vec beta_old = beta;
-        vec eta = X * beta;
-        vec mu = funcs.link_inv(eta);
-        vec var = funcs.variance(mu);
-        vec deriv = funcs.mu_eta(eta);
-        vec resid = (Y - mu) / sqrt(var);
-
-        if (!scale_fix) {
-            phi = update_Phi(resid, X.n_rows - X.n_cols);
+vec GEE_Para::q_scad(double lambda, double a) {
+    vec q = beta;
+    q.transform([&](double val) {
+        if (val < lambda) {
+            val = lambda;
+        } else if (val < a * lambda) {
+            val = (a * lambda - val) / (a - 1) * lambda;
         }
+        return val;
+    });
+    return q;
+}
 
-        alpha = update_WorkCor(cluster_cors, resid, cluster_bound, X.n_cols, phi, type);
+void GEE_Para::update_intermediate_result() {
+    eta = X * beta;
+    mu = funcs.link_inv(eta);
+    var = funcs.variance(mu);
+    deriv = funcs.mu_eta(eta);
+}
 
-        if (penalty) {
-            update_Beta(beta, X, Y - mu, cluster_cors, deriv, var, cluster_bound, phi,
-                        penalty, pindex, lambda, eps);
-        } else {
-            update_Beta(beta, X, Y - mu, cluster_cors, deriv, var, cluster_bound, phi);
-        }
+vec GEE_Para::get_alpha() {
+    return this->alpha;
+}
 
-        if(sum(abs(beta_old - beta)) < tol) {
-            converged = true;
-            stop = true;
-        } else if (count >= maxit){
-            stop = true;
-        }
-    }
+vec GEE_Para::get_beta() {
+    return this->beta;
+}
 
-    RO result(beta, alpha, phi, converged);
-    return result;
+double GEE_Para::get_phi() {
+    return this->phi;
 }
