@@ -1,5 +1,5 @@
-#include "gee.h"
-#include "QIF_Para.h"
+#include "GEE.h"
+#include "QIF.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // [[Rcpp::export]]
@@ -19,18 +19,12 @@ Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const 
         return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
     }
 
-    GEE_Control ctl(scale_fix, maxit, tol, false);
+    Control ctl(maxit, tol, false);
     Penalty_Options op(lambda, pindex, eps);
-    GEE_Para gee_para(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi);
-    gee_para.iterator_penalty(op);
+    GEE gee(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix);
+    gee.iterator_penalty(op);
 
-    return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
-                              Rcpp::Named("alpha")=gee_para.get_alpha(),
-                              Rcpp::Named("phi")=gee_para.get_phi(),
-                              Rcpp::Named("sandwich")=gee_para.get_sandwich(),
-                              Rcpp::Named("gaussian pseudolikelihood")=gee_para.gaussian_pseudolikelihood(),
-                              Rcpp::Named("geodesic distance")=gee_para.geodesic_distance());
-
+    return gee.get_result();
 }
 
 // [[Rcpp::export]]
@@ -49,17 +43,11 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
     } else {
         return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
     }
+    Control ctl(maxit, tol, false);
+    GEE gee(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix);
+    gee.iterator();
 
-    GEE_Control ctl(scale_fix, maxit, tol, false);
-    GEE_Para gee_para(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi);
-    gee_para.iterator();
-
-    return Rcpp::List::create(Rcpp::Named("beta")=gee_para.get_beta(),
-                              Rcpp::Named("alpha")=gee_para.get_alpha(),
-                              Rcpp::Named("phi")=gee_para.get_phi(),
-                              Rcpp::Named("sandwich")=gee_para.get_sandwich(),
-                              Rcpp::Named("gaussian.pseudolikelihood")=gee_para.gaussian_pseudolikelihood(),
-                              Rcpp::Named("geodesic.distance")=gee_para.geodesic_distance());
+    return gee.get_result();
 }
 
 // [[Rcpp::export]]
@@ -78,8 +66,9 @@ Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
         return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
     }
 
-    QIF_Para qif_para(Y, X, offset, cluster_sizes, family, type, init_beta);
-    qif_para.iterator();
+    Control ctl;
+    QIF qif(Y, X, offset, cluster_sizes, family, type, ctl, init_beta);
+    qif.iterator();
 
-    return Rcpp::List::create(Rcpp::Named("beta")=qif_para.get_beta());
+    return qif.get_result();
 }

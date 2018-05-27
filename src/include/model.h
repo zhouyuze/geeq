@@ -1,10 +1,10 @@
-#ifndef SRC_QIF_H
-#define SRC_QIF_H
+#ifndef SRC_MODEL_H
+#define SRC_MODEL_H
 
-#include "geeq.h"
+#include "utils.h"
 
-class QIF_Para {
-private:
+class Model {
+protected:
     // ****** passed variable ******
     // model data
     const vec y;
@@ -15,14 +15,12 @@ private:
     // model structure
     Family funcs;
     const WorkCor cor_type;
+    const Control ctl;
 
     // model parameter
     vec beta;
 
     // ****** calculated variable ******
-    bool solved;
-    bool converged;
-
     const int N; // number of all observations
     const int n; // number of clusters
     const int p; // number of beta
@@ -33,20 +31,18 @@ private:
     vec var;
     vec deriv;
 
-    vector<mat> base_mat;
-    vec g;
-    mat C;
-    mat dev_g;
+    bool converged;
 
-    double update_beta();
-    void update_intermediate_result();
-
+    void update_intermediate_variable();
+    virtual double update_beta() = 0;
 public:
-    QIF_Para(vec y, mat X, vec offset, uvec cluster_sizes,
-             Family family, WorkCor cor_type, vec beta);
-    int iterator();
-    vec get_beta();
+    Model() = delete;
+    Model(vec y, mat X, vec offset, uvec cluster_sizes,
+          Family family, WorkCor cor_type, Control ctl, vec init_beta);
+    ~Model() = default;
+
+    virtual int iterator() = 0;
+    virtual Rcpp::List get_result() = 0;
+
 };
-
-
-#endif //SRC_QIF_H
+#endif //SRC_MODEL_H

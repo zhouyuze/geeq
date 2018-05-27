@@ -7,6 +7,15 @@
 using namespace arma;
 using namespace std;
 
+class Control {
+public:
+    int maxit;
+    double tol;
+    bool trace;
+    explicit Control(int maxit = 30, double tol = 10^-6, bool trace = false):
+            maxit(maxit), tol(tol), trace(trace) {}
+};
+
 enum WorkCor {
     Independence,
     AR1,

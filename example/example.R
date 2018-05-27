@@ -26,4 +26,5 @@ y <- testdat$count
 X <- cbind(rep(1, 1000), testdat$time)
 clusterSize <- rep(5, 200)
 family <- poisson()
-qif_c(y, X, rep(0, length(y)), clusterSize, family, "ar1", c(1.0205254,0.4931009))
+qif_c(y, X, rep(0, length(y)), clusterSize, family, "ar1", c(mean(y), 0))
+gee(count~time, testdat, testdat$subject, family=poisson(), corstr="ar1")

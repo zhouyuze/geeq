@@ -1,4 +1,4 @@
-#include "geeq.h"
+#include "utils.h"
 
 Family::Family(Rcpp::List family_obj):
         link_funr((SEXP) family_obj["linkfun"]),
