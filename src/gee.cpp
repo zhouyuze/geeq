@@ -7,10 +7,8 @@ GEE_Para::GEE_Para(vec y, mat X, vec offset, uvec cluster_sizes,
     funcs(std::move(family)), cor_type(cor_type), ctl(ctl),
     beta(std::move(beta)), alpha(std::move(alpha)), phi(phi),
     N(this->X.n_rows), p(this->X.n_cols), n(cluster_bound.n_elem) {
-    this->eta = this->X * this->beta;
-    this->mu = funcs.link_inv(this->eta);
-    this->var = funcs.variance(this->mu);
-    this->deriv = funcs.mu_eta(this->eta);
+
+    update_intermediate_result();
     this->solved = false;
     this->converged = false;
 
@@ -170,7 +168,7 @@ double GEE_Para::update_beta_penalty(Penalty_Options op) {
     }
 
     delta_beta = solve(hessian + n * diagmat(E), score - n * (E % beta));
-    beta = beta + delta_beta;
+    beta = beta - delta_beta;
     update_intermediate_result();
 
     return sum(delta_beta);

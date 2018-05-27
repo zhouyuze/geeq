@@ -1,4 +1,5 @@
 #include "gee.h"
+#include "QIF_Para.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // [[Rcpp::export]]
@@ -59,4 +60,26 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
                               Rcpp::Named("sandwich")=gee_para.get_sandwich(),
                               Rcpp::Named("gaussian.pseudolikelihood")=gee_para.gaussian_pseudolikelihood(),
                               Rcpp::Named("geodesic.distance")=gee_para.geodesic_distance());
+}
+
+// [[Rcpp::export]]
+Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
+                 const Rcpp::List family_objs, const std::string corstr,
+                 const arma::vec init_beta) {
+    Family family(family_objs);
+    WorkCor type;
+    if (corstr == "independence") {
+        type = Independence;
+    } else if (corstr == "ar1") {
+        type = AR1;
+    } else if (corstr == "exchangeable") {
+        type = Exchangable;
+    } else {
+        return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
+    }
+
+    QIF_Para qif_para(Y, X, offset, cluster_sizes, family, type, init_beta);
+    qif_para.iterator();
+
+    return Rcpp::List::create(Rcpp::Named("beta")=qif_para.get_beta());
 }

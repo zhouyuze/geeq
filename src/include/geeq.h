@@ -1,3 +1,6 @@
+#ifndef SRC_GEEQ_H
+#define SRC_GEEQ_H
+
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
 
@@ -27,3 +30,5 @@ public:
 
     vec mu_eta(const vec eta);
 };
+
+#endif //SRC_GEE_H
