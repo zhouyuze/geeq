@@ -1,7 +1,7 @@
 #ifndef SRC_MODEL_H
 #define SRC_MODEL_H
 
-#include "utils.h"
+#include "Family.h"
 
 class Model {
 protected:

@@ -4,7 +4,7 @@ void Model::update_intermediate_variable() {
     eta = X * beta;
     mu = funcs.link_inv(eta);
     var = funcs.variance(mu);
-    deriv = funcs.mu_eta(eta);
+    deriv = funcs.derivative(eta);
 }
 
 Model::Model(vec y, mat X, vec offset, uvec cluster_sizes,
