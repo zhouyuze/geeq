@@ -21,6 +21,10 @@ protected:
     // correlation in each cluster
     vector<mat> cluster_cor;
 
+    mat H1;
+    mat H2;
+    vec score;
+
     void update_phi();
     void update_alpha();
 
@@ -29,6 +33,7 @@ protected:
 
     vec q_scad(double lambda, double a = 3.7);
 
+    void calculate_H2();
     mat get_sandwich();
     double gaussian_pseudolikelihood();
     vec geodesic_distance();

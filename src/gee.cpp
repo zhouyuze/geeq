@@ -6,7 +6,8 @@ GEE::GEE(vec y, mat X, vec offset, uvec cluster_sizes,
         Model(std::move(y), std::move(X), std::move(offset),
               cluster_sizes, std::move(family),
               cor_type, ctl, std::move(beta)),
-        alpha(std::move(alpha)), phi(phi), scale_fix(fix) {
+        alpha(std::move(alpha)), phi(phi), scale_fix(fix),
+        H1(p, p, fill::zeros), H2(p, p, fill::zeros), score(p, fill::zeros) {
     for (int i = 0; i < n; i++) {
         cluster_cor.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
     }
@@ -31,6 +32,8 @@ int GEE::iterator() {
             stop = true;
         }
     }
+    // Calculate H2 after estimation
+    calculate_H2();
     return count;
 }
 
@@ -53,6 +56,8 @@ int GEE::iterator_penalty(Penalty_Options op) {
             stop = true;
         }
     }
+    // Calculate H2 after estimation
+    calculate_H2();
     return count;
 }
 
@@ -66,8 +71,8 @@ Rcpp::List GEE::get_result() {
 }
 
 double GEE::update_beta() {
-    mat hessian = zeros<mat>(p, p);
-    vec score = zeros<vec>(p);
+    H1.zeros();
+    score.zeros();
 
     mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
@@ -82,11 +87,11 @@ double GEE::update_beta() {
         mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
 
-        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        H1 += sub_D.t() * sub_inverse_var * sub_D;
         score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
     }
 
-    delta_beta = solve(hessian, score);
+    delta_beta = solve(H1, score);
     beta = beta + delta_beta;
     update_intermediate_variable();
 
@@ -94,8 +99,8 @@ double GEE::update_beta() {
 }
 
 double GEE::update_beta_penalty(Penalty_Options op) {
-    mat hessian = zeros<mat>(p, p);
-    vec score = zeros<vec>(p);
+    H1.zeros();
+    score.zeros();
 
     mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
@@ -115,11 +120,11 @@ double GEE::update_beta_penalty(Penalty_Options op) {
         mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
 
-        hessian += sub_D.t() * sub_inverse_var * sub_D;
+        H1 += sub_D.t() * sub_inverse_var * sub_D;
         score += sub_D.t() * sub_inverse_var * (S.subvec(start, end));
     }
 
-    delta_beta = solve(hessian + n * diagmat(E), score - n * (E % beta));
+    delta_beta = solve(H1 + n * diagmat(E), score - n * (E % beta));
     beta = beta + delta_beta;
     update_intermediate_variable();
 
@@ -192,27 +197,7 @@ vec GEE::q_scad(double lambda, double a) {
 }
 
 mat GEE::get_sandwich() {
-    mat hessian = zeros<mat>(p, p);
-    mat namesand = zeros<mat>(p, p);
-
-    mat D = X.each_col() % deriv;
-    vec std_err = sqrt(var);
-    vec S = y - mu;
-
-    for (int i = 0; i < n; i++) {
-        int start = i == 0 ? 0:cluster_bound[i-1];
-        int end = cluster_bound[i] - 1;
-
-        vec sub_sqrt_A = std_err.subvec(start, end);
-        vec sub_S = S.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
-        mat sub_D = D.rows(start, end);
-
-        hessian += sub_D.t() * sub_inverse_var * sub_D;
-        namesand += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
-    }
-
-    return solve(hessian, solve(hessian, namesand).t());
+    return solve(H1, solve(H1, H2).t());
 }
 
 double GEE::gaussian_pseudolikelihood() {
@@ -235,8 +220,15 @@ double GEE::gaussian_pseudolikelihood() {
 
 vec GEE::geodesic_distance() {
     vec delta(2);
-    mat hessian = zeros<mat>(p, p);
-    mat namesand = zeros<mat>(p, p);
+    mat Q = solve(H1, H2);
+    vec eig = eig_sym(Q);
+    delta[0] = sum((eig - 1) % (eig - 1));
+    delta[1] = sum(abs(log(eig)));
+    return delta;
+}
+
+void GEE::calculate_H2() {
+    H2.zeros();
 
     mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
@@ -251,13 +243,6 @@ vec GEE::geodesic_distance() {
         mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
 
-        hessian += sub_D.t() * sub_inverse_var * sub_D;
-        namesand += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
+        H2 += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
     }
-
-    mat Q = solve(hessian, namesand);
-    vec eig = eig_sym(Q);
-    delta[0] = sum((eig - 1) % (eig - 1));
-    delta[1] = sum(abs(log(eig)));
-    return delta;
 }
