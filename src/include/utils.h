@@ -41,7 +41,7 @@ enum LinkType {
 const static map<string, WorkCor> workCorMap = {
         {"independence", Independence},
         {"ar1", AR1},
-        {"exchangable", Exchangable}
+        {"exchangeable", Exchangable}
 };
 
 const static map<string, FamilyType> familyTypeMap = {
