@@ -9,7 +9,7 @@ gee_c <- function(Y, X, offset, cluster_sizes, family_objs, corstr, init_beta, i
     .Call(`_geeq_gee_c`, Y, X, offset, cluster_sizes, family_objs, corstr, init_beta, init_alpha, init_phi, scale_fix, maxit, tol)
 }
 
-qif_c <- function(Y, X, offset, cluster_sizes, family_objs, corstr, init_beta) {
-    .Call(`_geeq_qif_c`, Y, X, offset, cluster_sizes, family_objs, corstr, init_beta)
+qif_c <- function(Y, X, offset, cluster_sizes, family_objs, corstr, init_beta, maxit, tol) {
+    .Call(`_geeq_qif_c`, Y, X, offset, cluster_sizes, family_objs, corstr, init_beta, maxit, tol)
 }
 

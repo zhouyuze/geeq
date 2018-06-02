@@ -54,8 +54,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // qif_c
-Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta);
-RcppExport SEXP _geeq_qif_c(SEXP YSEXP, SEXP XSEXP, SEXP offsetSEXP, SEXP cluster_sizesSEXP, SEXP family_objsSEXP, SEXP corstrSEXP, SEXP init_betaSEXP) {
+Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr, const arma::vec init_beta, int maxit, double tol);
+RcppExport SEXP _geeq_qif_c(SEXP YSEXP, SEXP XSEXP, SEXP offsetSEXP, SEXP cluster_sizesSEXP, SEXP family_objsSEXP, SEXP corstrSEXP, SEXP init_betaSEXP, SEXP maxitSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -66,7 +66,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List >::type family_objs(family_objsSEXP);
     Rcpp::traits::input_parameter< const std::string >::type corstr(corstrSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type init_beta(init_betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(qif_c(Y, X, offset, cluster_sizes, family_objs, corstr, init_beta));
+    Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(qif_c(Y, X, offset, cluster_sizes, family_objs, corstr, init_beta, maxit, tol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -74,7 +76,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_geeq_pgee_c", (DL_FUNC) &_geeq_pgee_c, 15},
     {"_geeq_gee_c", (DL_FUNC) &_geeq_gee_c, 12},
-    {"_geeq_qif_c", (DL_FUNC) &_geeq_qif_c, 7},
+    {"_geeq_qif_c", (DL_FUNC) &_geeq_qif_c, 9},
     {NULL, NULL, 0}
 };
 

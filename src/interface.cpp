@@ -53,7 +53,7 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
 // [[Rcpp::export]]
 Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
                  const Rcpp::List family_objs, const std::string corstr,
-                 const arma::vec init_beta) {
+                 const arma::vec init_beta, int maxit, double tol) {
     string familystr = Rcpp::as<string>(family_objs["family"]);
     string linkstr = Rcpp::as<string>(family_objs["link"]);
     if (workCorMap.count(corstr) == 0 ||
@@ -66,7 +66,7 @@ Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
     Family family(familyTypeMap.at(familystr), linkTypeMap.at(linkstr));
 
 
-    Control ctl;
+    Control ctl(maxit, tol, false);
     QIF qif(Y, X, offset, cluster_sizes, family, type, ctl, init_beta);
     qif.iterator();
 
