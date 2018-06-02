@@ -15,6 +15,9 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
     offset <- rep(0, length(Y))
   }
 
+  subj.col <- which(colnames(data) == call$id)
+  id <- data[,subj.col]
+
   cluster.size <- as.numeric(summary(split(id, id, drop=T))[,1])
   max.cluster <- max(cluster.size)
 
@@ -38,13 +41,8 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
   # initialize
   intercept.col <- apply(X==1, 2, all)
   if (is.null(init.beta)) {
-    if (any(intercept.col)) {
-      init.beta <- rep(0, dim(X)[2])
-      linkOfMean <- family$linkfun(mean(Y)) - mean(offset)
-      init.beta[which(intercept.col)] <- linkOfMean
-    } else {
-      stop("Must supply an initial beta if not using an intercept.")
-    }
+    fit0 <- glm.fit(X, Y, offset=offset, family=family)
+    init.beta <- fit0$coef
   } else if (length(init.beta) != dim(X)[2]) {
     stop("Length of init.beta is not correct.")
   }
