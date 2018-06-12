@@ -17,6 +17,7 @@ protected:
     vec alpha;
     double phi;
     bool scale_fix;
+    int Mv;
 
     // correlation in each cluster
     vector<mat> cluster_cor;
@@ -41,7 +42,7 @@ protected:
 public:
     GEE(vec y, mat X, vec offset, uvec cluster_sizes,
         Family family, WorkCor cor_type, Control ctl,
-        vec beta, vec alpha, double phi, bool fix);
+        vec beta, vec alpha, double phi, bool fix, mat cor_mat = zeros(1), int Mv = 0);
 
     int iterator() override;
     int iterator_penalty(Penalty_Options op);

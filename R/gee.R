@@ -1,5 +1,5 @@
 gee <- function(formula, data, id, waves = NULL, family = gaussian(),
-                corstr = "independence", Mv = NULL, cor.mat = matrix(),
+                corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.alpha = NULL, init.beta = NULL, init.phi = NULL, scale.fix = FALSE,
                 penalty = FALSE, lambda = 10^-3, pindex = vector(), eps = 10^-6,
                 maxit = 30, tol = 10^-6) {
@@ -26,7 +26,7 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
     stop("Problem with family parameter: should contains four functions")
   }
 
-  cor.vec <- c("independence", "fixed", "ar1", "exchangeable", "m-dependent", "unstructure")
+  cor.vec <- c("independence", "fixed", "ar1", "exchangeable", "m-dependent", "unstructured")
   cor.match <- charmatch(corstr, cor.vec)
   if (is.na(cor.match)) {
     stop("Unsupported correlation structure")
@@ -72,10 +72,10 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
 
   if (penalty) {
     result <- pgee_c(Y, X, offset, cluster.size, family, corstr,
-                    init.beta, init.alpha, init.phi, scale.fix, lambda, pindex, eps, maxit, tol)
+                    init.beta, init.alpha, init.phi, scale.fix, lambda, pindex, eps, maxit, tol, cor.mat, Mv)
   } else {
     result <- gee_c(Y, X, offset, cluster.size, family, corstr,
-                    init.beta, init.alpha, init.phi, scale.fix, maxit, tol)
+                    init.beta, init.alpha, init.phi, scale.fix, maxit, tol, cor.mat, Mv)
   }
   return(result)
 }

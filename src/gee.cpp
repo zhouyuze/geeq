@@ -2,14 +2,25 @@
 
 GEE::GEE(vec y, mat X, vec offset, uvec cluster_sizes,
          Family family, WorkCor cor_type, Control ctl,
-         vec beta, vec alpha, double phi, bool fix):
+         vec beta, vec alpha, double phi, bool fix, mat cor_mat, int Mv):
         Model(std::move(y), std::move(X), std::move(offset),
               cluster_sizes, std::move(family),
               cor_type, ctl, std::move(beta)),
-        alpha(std::move(alpha)), phi(phi), scale_fix(fix),
+        alpha(std::move(alpha)), phi(phi), scale_fix(fix), Mv(Mv),
         H1(p, p, fill::zeros), H2(p, p, fill::zeros), score(p, fill::zeros) {
-    for (int i = 0; i < n; i++) {
-        cluster_cor.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
+
+    switch (cor_type) {
+        case Fixed: {
+            for (int i = 0; i < n; i++) {
+                cluster_cor.push_back(cor_mat.submat(0, 0, cluster_sizes[i] - 1, cluster_sizes[i] - 1));
+            }
+        }
+        default: {
+            for (int i = 0; i < n; i++) {
+                cluster_cor.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
+            }
+            break;
+        }
     }
 }
 
@@ -24,7 +35,6 @@ int GEE::iterator() {
         }
         update_alpha();
         double diff = update_beta();
-
         if(diff < ctl.tol) {
             converged = true;
             stop = true;
@@ -84,7 +94,7 @@ double GEE::update_beta() {
         int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
         H1 += sub_D.t() * sub_inverse_var * sub_D;
@@ -117,7 +127,7 @@ double GEE::update_beta_penalty(Penalty_Options op) {
         int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
         H1 += sub_D.t() * sub_inverse_var * sub_D;
@@ -133,14 +143,15 @@ double GEE::update_beta_penalty(Penalty_Options op) {
 
 void GEE::update_phi() {
     vec resid = (y - mu) / sqrt(var);
-    phi = (N - p) / sum(resid % resid);
+    phi = sum(resid % resid) / (N - p);
 }
 
 void GEE::update_alpha() {
     vec resid = (y - mu) / sqrt(var);
 
     switch (cor_type) {
-        case Independence: {
+        case Independence:
+        case Fixed: {
             break;
         }
         case Exchangable: {
@@ -156,7 +167,8 @@ void GEE::update_alpha() {
                 numerator += accu(R) - sum(diagvec(R));
                 denominator += size * (size - 1);
             }
-            alpha[0] = numerator / denominator;
+            denominator -= p;
+            alpha[0] = numerator / (denominator * phi);
 
             // update the correlation matrix
             for (int i = 0; i < n; i++) {
@@ -171,12 +183,75 @@ void GEE::update_alpha() {
             // set the resid value at cluster bound to zero
             next_resid.elem(cluster_bound - 1) = zeros<vec>(n);
 
-            alpha[0] = sum(resid % next_resid) / (N - n) * phi;
+            alpha[0] = sum(resid % next_resid) / ((N - n - p) * phi);
 
             // update the correlation matrix
             for (int i = 0; i < n; i++) {
                 cluster_cor[i].diag(1).fill(alpha[0]);
                 cluster_cor[i].diag(-1).fill(alpha[0]);
+            }
+            break;
+        }
+        case Unstructured: {
+            mat tmp(max_cluster, max_cluster, fill::zeros);
+            // number of clusters for different size
+            uvec count(max_cluster+1, fill::zeros);
+            for (int i = 0; i < n; i++) {
+                int start = i == 0 ? 0:cluster_bound[i-1];
+                int end = cluster_bound[i] - 1;
+
+                count[end - start]++;
+
+                vec sub_resid = resid.subvec(start, end);
+                tmp.submat(0, 0, end-start, end-start) += sub_resid * sub_resid.t();
+            }
+
+            for (int index = 0, i = 0; i < max_cluster - 1; i++) {
+                for (int j = i + 1; j < max_cluster; j++) {
+                    double numerator = tmp(i, j);
+                    double denominator = sum(count) - sum(count.head(j)) - p;
+                    alpha[index] = numerator / (denominator * phi);
+                    tmp(i, j) = alpha[index];
+                    tmp(j, i) = alpha[index++];
+                }
+            }
+            tmp.diag().fill(1);
+
+            // update the correlation matrix
+            for (int i = 0; i < n; i++) {
+                int l = cluster_cor[i].n_cols;
+                cluster_cor[i] = tmp.submat(0, 0, l-1, l-1);
+            }
+            break;
+        }
+        case M_dependent: {
+            vec numerator(Mv, fill::zeros);
+            vec denominator(Mv, fill::zeros);
+
+            for (int i = 0; i < n; i++) {
+                int start = i == 0 ? 0:cluster_bound[i-1];
+                int end = cluster_bound[i] - 1;
+
+                vec sub_resid = resid.subvec(start, end);
+                mat tmp = sub_resid * sub_resid.t();
+                for (int j = end - start, k = 0; j > 0 && k < Mv; j++, k++) {
+                    numerator[k] += sum(tmp.diag(k+1));
+                    denominator[k] += j;
+                }
+            }
+            denominator -= p;
+            alpha = numerator / (denominator * phi);
+
+            // update the correlation matrix
+            mat tmp(max_cluster, max_cluster, fill::zeros);
+            for (int i = 0; i < Mv; i++) {
+                tmp.diag(i + 1).fill(alpha[i]);
+                tmp.diag(-i - 1).fill(alpha[i]);
+            }
+            tmp.diag().fill(1);
+            for (int i = 0; i < n; i++) {
+                int l = cluster_cor[i].n_cols;
+                cluster_cor[i] = tmp.submat(0, 0, l-1, l-1);
             }
             break;
         }

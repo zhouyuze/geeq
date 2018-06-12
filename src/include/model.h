@@ -24,6 +24,7 @@ protected:
     const int N; // number of all observations
     const int n; // number of clusters
     const int p; // number of beta
+    const int max_cluster; // maximum cluster size
 
     // intermediate result; initialize in Constructor and update when beta is updated
     vec eta;

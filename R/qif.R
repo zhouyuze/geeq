@@ -1,5 +1,5 @@
 qif <- function(formula, data, id, waves = NULL, family = gaussian(),
-                corstr = "independence", Mv = NULL, cor.mat = matrix(),
+                corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.beta = NULL, maxit = 30, tol = 10^-6) {
   call <- match.call()
 
