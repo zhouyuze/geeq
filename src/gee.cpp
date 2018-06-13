@@ -195,7 +195,7 @@ void GEE::update_alpha() {
         case Unstructured: {
             mat tmp(max_cluster, max_cluster, fill::zeros);
             // number of clusters for different size
-            uvec count(max_cluster+1, fill::zeros);
+            uvec count(max_cluster, fill::zeros);
             for (int i = 0; i < n; i++) {
                 int start = i == 0 ? 0:cluster_bound[i-1];
                 int end = cluster_bound[i] - 1;

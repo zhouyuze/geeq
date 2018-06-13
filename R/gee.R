@@ -51,7 +51,7 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
     alpha.length <- 0
   } else if (cor.match < 5) {
     alpha.length <- 1
-  } else if (cor.match == 6) {
+  } else if (cor.match == 5) {
     alpha.length <- Mv
   } else {
     alpha.length <- sum(1:(max.cluster - 1))
