@@ -19,8 +19,8 @@ protected:
     bool scale_fix;
     int Mv;
 
-    // correlation in each cluster
-    vector<mat> cluster_cor;
+    // correlation for the maximum cluster. For other cluster, use submat
+    mat correlation;
 
     mat H1;
     mat H2;

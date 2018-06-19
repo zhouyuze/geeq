@@ -10,17 +10,12 @@ GEE::GEE(vec y, mat X, vec offset, uvec cluster_sizes,
         H1(p, p, fill::zeros), H2(p, p, fill::zeros), score(p, fill::zeros) {
 
     switch (cor_type) {
-        case Fixed: {
-            for (int i = 0; i < n; i++) {
-                cluster_cor.push_back(cor_mat.submat(0, 0, cluster_sizes[i] - 1, cluster_sizes[i] - 1));
-            }
-        }
-        default: {
-            for (int i = 0; i < n; i++) {
-                cluster_cor.emplace_back(cluster_sizes[i], cluster_sizes[i], fill::eye);
-            }
+        case Fixed:
+            correlation = cor_mat;
             break;
-        }
+        default:
+            correlation = mat(max_cluster, max_cluster, fill::eye);
+            break;
     }
 }
 
@@ -95,7 +90,8 @@ double GEE::update_beta() {
         int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
+        mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
+        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
         H1 += sub_D.t() * sub_inverse_var * sub_D;
@@ -128,7 +124,8 @@ double GEE::update_beta_penalty(Penalty_Options op) {
         int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
+        mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
+        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
         H1 += sub_D.t() * sub_inverse_var * sub_D;
@@ -172,10 +169,8 @@ void GEE::update_alpha() {
             alpha[0] = numerator / (denominator * phi);
 
             // update the correlation matrix
-            for (int i = 0; i < n; i++) {
-                cluster_cor[i].fill(alpha[0]);
-                cluster_cor[i].diag().fill(1);
-            }
+            correlation.fill(alpha[0]);
+            correlation.diag().fill(1);
             break;
         }
         case AR1: {
@@ -187,10 +182,8 @@ void GEE::update_alpha() {
             alpha[0] = sum(resid % next_resid) / ((N - n - p) * phi);
 
             // update the correlation matrix
-            for (int i = 0; i < n; i++) {
-                cluster_cor[i].diag(1).fill(alpha[0]);
-                cluster_cor[i].diag(-1).fill(alpha[0]);
-            }
+            correlation.diag(1).fill(alpha[0]);
+            correlation.diag(-1).fill(alpha[0]);
             break;
         }
         case Unstructured: {
@@ -219,10 +212,7 @@ void GEE::update_alpha() {
             tmp.diag().fill(1);
 
             // update the correlation matrix
-            for (int i = 0; i < n; i++) {
-                int l = cluster_cor[i].n_cols;
-                cluster_cor[i] = tmp.submat(0, 0, l-1, l-1);
-            }
+            correlation = tmp;
             break;
         }
         case M_dependent: {
@@ -250,10 +240,7 @@ void GEE::update_alpha() {
                 tmp.diag(-i - 1).fill(alpha[i]);
             }
             tmp.diag().fill(1);
-            for (int i = 0; i < n; i++) {
-                int l = cluster_cor[i].n_cols;
-                cluster_cor[i] = tmp.submat(0, 0, l-1, l-1);
-            }
+            correlation = tmp;
             break;
         }
     }
@@ -292,7 +279,8 @@ double GEE::gaussian_pseudolikelihood() {
 
         vec sub_sqrt_A = std_err.subvec(start, end);
         vec sub_S = S.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
+        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         result += accu(sub_S.t() * sub_inverse_var * sub_S);
         result += det(sub_inverse_var);
     }
@@ -321,7 +309,8 @@ void GEE::calculate_H2() {
 
         vec sub_sqrt_A = std_err.subvec(start, end);
         vec sub_S = S.subvec(start, end);
-        mat sub_inverse_var = ((cluster_cor[i] % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
+        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
 
         H2 += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
