@@ -77,7 +77,8 @@ Rcpp::List GEE::get_result() {
                               Rcpp::Named("phi")=phi,
                               Rcpp::Named("sandwich")=get_sandwich(),
                               Rcpp::Named("gaussian.pseudolikelihood")=gaussian_pseudolikelihood(),
-                              Rcpp::Named("geodesic.distance")=geodesic_distance());
+                              Rcpp::Named("geodesic.distance")=geodesic_distance(),
+                              Rcpp::Named("QIC")=QIC());
 }
 
 double GEE::update_beta() {
@@ -273,6 +274,11 @@ vec GEE::q_scad(double lambda, double a) {
 
 mat GEE::get_sandwich() {
     return solve(H1, solve(H1, H2).t());
+}
+
+double GEE::QIC() {
+    mat tmp = H1 * get_sandwich();
+    return -2 * sum(funcs.likelyhood(y, mu)) / phi + 2 * trace(tmp);
 }
 
 double GEE::gaussian_pseudolikelihood() {

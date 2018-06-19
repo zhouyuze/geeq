@@ -36,6 +36,7 @@ protected:
 
     void calculate_H2();
     mat get_sandwich();
+    double QIC();
     double gaussian_pseudolikelihood();
     vec geodesic_distance();
 
