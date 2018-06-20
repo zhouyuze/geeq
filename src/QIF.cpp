@@ -1,17 +1,26 @@
 #include "QIF.h"
 
+QIF::QIF(vec y, mat X, vec offset, uvec cluster_sizes,
+        Family family, WorkCor cor_type, Control ctl, vec beta):
+        Model(std::move(y), std::move(X), std::move(offset),
+              std::move(cluster_sizes), std::move(family),
+              cor_type, std::move(ctl), std::move(beta)),
+        Q_first_deriv(p, fill::zeros), Q_second_deriv(p, p, fill::zeros) {
+    init_base_mat();
+    init_key_mat();
+}
+
 void QIF::init_base_mat() {
-    int size = N / n;
-    base_mat.emplace_back(size, size, fill::eye);
+    base_mat.emplace_back(max_cluster, max_cluster, fill::eye);
     switch (cor_type) {
         case Exchangable:
-            base_mat.emplace_back(size, size, fill::ones);
+            base_mat.emplace_back(max_cluster, max_cluster, fill::ones);
             base_mat[1].diag().fill(0);
             m = 2;
             break;
 
         case AR1:
-            base_mat.emplace_back(size, size, fill::zeros);
+            base_mat.emplace_back(max_cluster, max_cluster, fill::zeros);
             base_mat[1].diag(1).fill(1);
             base_mat[1].diag(-1).fill(1);
             m = 2;
@@ -28,9 +37,6 @@ void QIF::init_key_mat() {
     g = vec(m * p, fill::zeros);
     C = mat(m * p, m * p, fill::zeros);
     dev_g = mat(m * p, p, fill::zeros);
-
-    Q_first_deriv = vec(p, fill::zeros);
-    Q_second_deriv = mat(p, p, fill::zeros);
 }
 
 double QIF::update_beta() {
@@ -46,14 +52,15 @@ double QIF::update_beta() {
     for (int i = 0; i < n; i++) {
         vec gi(arma::size(g), fill::zeros);
         mat dev_gi(arma::size(dev_g), fill::zeros);
-        int start = i * size;
-        int end = (i + 1) * size - 1;
+        int start = i == 0 ? 0:cluster_bound[i-1];
+        int end = cluster_bound[i] - 1;
 
         vec sub_sqrt_A = std_err.subvec(start, end);
         mat sub_D = D.rows(start, end);
 
         for (int j = 0; j < base_mat.size(); j++) {
-            mat sub_inverse_var = base_mat[j] % (1 / (sub_sqrt_A * sub_sqrt_A.t()));
+            mat tmp_mat = base_mat[j].submat(0, 0, end - start, end - start);
+            mat sub_inverse_var = tmp_mat % (1 / (sub_sqrt_A * sub_sqrt_A.t()));
             gi.subvec(j*p, (j+1)*p-1) = sub_D.t() * sub_inverse_var * (err.subvec(start, end));
             dev_gi.submat(j*p, 0, (j+1)*p-1, p-1) = -sub_D.t() * sub_inverse_var * sub_D;
         }
