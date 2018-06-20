@@ -73,21 +73,19 @@ double QIF::update_beta() {
     return sum(abs(delta_beta));
 }
 
-int QIF::iterator() {
+void QIF::iterator() {
     bool stop = false;
-    int count = 0;
 
     while(!stop) {
-        count++;
+        niter++;
         double diff = update_beta();
         if(diff < ctl.tol) {
             converged = true;
             stop = true;
-        } else if (count >= ctl.maxit){
+        } else if (niter >= ctl.maxit){
             stop = true;
         }
     }
-    return count;
 }
 
 Rcpp::List QIF::get_result() {

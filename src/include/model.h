@@ -32,7 +32,8 @@ protected:
     vec var;
     vec deriv;
 
-    bool converged;
+    bool converged = false;
+    int niter = 0;
 
     void update_intermediate_variable();
     virtual double update_beta() = 0;
@@ -42,7 +43,7 @@ public:
           Family family, WorkCor cor_type, Control ctl, vec init_beta);
     ~Model() = default;
 
-    virtual int iterator() = 0;
+    virtual void iterator() = 0;
     virtual Rcpp::List get_result() = 0;
 
 };

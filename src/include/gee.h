@@ -45,8 +45,8 @@ public:
         Family family, WorkCor cor_type, Control ctl,
         vec beta, vec alpha, double phi, bool fix, mat cor_mat = zeros(1), int Mv = 0);
 
-    int iterator() override;
-    int iterator_penalty(Penalty_Options op);
+    void iterator() override;
+    void iterator_penalty(Penalty_Options op);
     Rcpp::List get_result() override;
 };
 

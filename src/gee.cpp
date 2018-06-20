@@ -19,12 +19,11 @@ GEE::GEE(vec y, mat X, vec offset, uvec cluster_sizes,
     }
 }
 
-int GEE::iterator() {
+void GEE::iterator() {
     bool stop = false;
-    int count = 0;
 
     while(!stop) {
-        count++;
+        niter++;
         if (!scale_fix) {
             update_phi();
         }
@@ -33,21 +32,19 @@ int GEE::iterator() {
         if(diff < ctl.tol) {
             converged = true;
             stop = true;
-        } else if (count >= ctl.maxit){
+        } else if (niter >= ctl.maxit){
             stop = true;
         }
     }
     // Calculate H2 after estimation
     calculate_H2();
-    return count;
 }
 
-int GEE::iterator_penalty(Penalty_Options op) {
+void GEE::iterator_penalty(Penalty_Options op) {
     bool stop = false;
-    int count = 0;
 
     while(!stop) {
-        count++;
+        niter++;
         if (!scale_fix) {
             update_phi();
         }
@@ -57,13 +54,12 @@ int GEE::iterator_penalty(Penalty_Options op) {
         if(diff < ctl.tol) {
             converged = true;
             stop = true;
-        } else if (count >= ctl.maxit){
+        } else if (niter >= ctl.maxit){
             stop = true;
         }
     }
     // Calculate H2 after estimation
     calculate_H2();
-    return count;
 }
 
 Rcpp::List GEE::get_result() {

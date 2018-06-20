@@ -28,7 +28,7 @@ public:
         init_base_mat();
         init_key_mat();
     }
-    int iterator() override;
+    void iterator() override;
     Rcpp::List get_result() override;
 };
 
