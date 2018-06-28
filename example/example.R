@@ -22,9 +22,6 @@ generatedata <- function(beta,alpha,gamma,X,T,n)  {
 X <- cbind(rep(1,5),c(-.5,-.25,0,.25,.5))
 testdat <- generatedata(beta=c(1,.5),alpha=.2,gamma=.5,X=X,T=5,n=200)
 
-y <- testdat$count
-X <- cbind(rep(1, 1000), testdat$time)
-clusterSize <- rep(5, 200)
-family <- poisson()
-qif_c(y, X, rep(0, length(y)), clusterSize, family, "ar1", c(mean(y), 0))
-gee(count~time, testdat, testdat$subject, family=poisson(), corstr="ar1")
+
+qif(count~time, testdat, subject, family=poisson(), corstr="ar1")
+gee(count~time, testdat, subject, family=poisson(), corstr="ar1")
