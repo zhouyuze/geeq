@@ -1,4 +1,4 @@
-qif <- function(formula, data, id, waves = NULL, family = gaussian(),
+qif <- function(formula, data, id, family = gaussian(),
                 corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.beta = NULL, maxit = 30, tol = 10^-6) {
   call <- match.call()

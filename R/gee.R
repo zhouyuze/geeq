@@ -1,4 +1,4 @@
-gee <- function(formula, data, id, waves = NULL, family = gaussian(),
+gee <- function(formula, data, id, family = gaussian(),
                 corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.alpha = NULL, init.beta = NULL, init.phi = NULL, scale.fix = FALSE,
                 penalty = FALSE, lambda = 10^-3, pindex = vector(), eps = 10^-6,
@@ -77,5 +77,19 @@ gee <- function(formula, data, id, waves = NULL, family = gaussian(),
     result <- gee_c(Y, X, offset, cluster.size, family, corstr,
                     init.beta, init.alpha, init.phi, scale.fix, maxit, tol, cor.mat, Mv)
   }
+
+  result$call <- call
+  result$corr.type <- corstr
+  result$family.type <- family$family
+  result$link.type <- family$link
+
+  result$coefnames <- colnames(X)
+  result$formula <- formula
+  result$X <- X
+  result$offset <- offset
+  result$Y <- Y
+  result$cluster.size <- cluster.size
+
+  class(result) <- "geeq"
   return(result)
 }

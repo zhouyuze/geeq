@@ -67,6 +67,7 @@ Rcpp::List GEE::get_result() {
                               Rcpp::Named("alpha")=alpha,
                               Rcpp::Named("phi")=phi,
                               Rcpp::Named("sandwich")=get_sandwich(),
+                              Rcpp::Named("niter")=niter,
                               Rcpp::Named("gaussian.pseudolikelihood")=gaussian_pseudolikelihood(),
                               Rcpp::Named("geodesic.distance")=geodesic_distance(),
                               Rcpp::Named("QIC")=QIC());
