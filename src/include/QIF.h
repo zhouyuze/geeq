@@ -10,6 +10,7 @@ protected:
     vec g;
     mat C;
     mat dev_g;
+    double phi;
 
     double Q = 0;
     vec Q_first_deriv;
@@ -18,6 +19,7 @@ protected:
     void init_base_mat();
     void init_key_mat();
     double update_beta() override;
+    void calculate_phi();
 public:
     QIF(vec y, mat X, vec offset, uvec cluster_sizes,
         Family family, WorkCor cor_type, Control ctl, vec beta):

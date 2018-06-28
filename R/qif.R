@@ -45,5 +45,19 @@ qif <- function(formula, data, id, family = gaussian(),
   }
 
   result <- qif_c(Y, X, offset, cluster.size, family, corstr, init.beta, maxit, tol)
+
+  result$call <- call
+  result$corr.type <- corstr
+  result$family.type <- family$family
+  result$link.type <- family$link
+
+  result$coefnames <- colnames(X)
+  result$formula <- formula
+  result$X <- X
+  result$offset <- offset
+  result$Y <- Y
+  result$cluster.size <- cluster.size
+
+  class(result) <- "qif"
   return(result)
 }

@@ -63,6 +63,7 @@ double QIF::update_beta() {
         dev_g += dev_gi;
     }
 
+    Q = sum(g.t() * solve(C, g));
     Q_first_deriv = dev_g.t() * solve(C, g);
     Q_second_deriv = dev_g.t() * solve(C, dev_g);
 
@@ -86,8 +87,18 @@ void QIF::iterator() {
             stop = true;
         }
     }
+    calculate_phi();
+}
+
+void QIF::calculate_phi() {
+    vec resid = (y - mu) / sqrt(var);
+    phi = sum(resid % resid) / (N - p);
 }
 
 Rcpp::List QIF::get_result() {
-    return Rcpp::List::create(Rcpp::Named("beta")=beta);
+    return Rcpp::List::create(Rcpp::Named("beta")=beta,
+                              Rcpp::Named("phi")=phi,
+                              Rcpp::Named("variance")=Q_second_deriv.i(),
+                              Rcpp::Named("Q")=Q,
+                              Rcpp::Named("niter")=niter);
 }

@@ -18,3 +18,23 @@ print.geeq <- function(object, ...) {
     cat("\n Number of clusters: ", length(object$cluster.size))
     cat("\n Maximum cluster size: ", max(object$cluster.size), "\n")
 }
+
+print.qif <- function(object, ...) {
+    Coefs <- matrix(NA,nrow=length(object$beta),ncol=4)
+    Coefs[,1] <- c(object$beta)
+    Coefs[,2] <- sqrt(diag(object$variance))
+    Coefs[,3] <- Coefs[,1]/Coefs[,2]
+    Coefs[,4] <- round(2*pnorm(abs(Coefs[,3]), lower.tail=F), digits=8)
+    colnames(Coefs) <- c("Estimates", "Standard Error", "wald", "p")
+    rownames(Coefs) <- c(object$coefnames)
+    print(signif(Coefs, digits=4))
+
+    cat("\n Scale Parameter: ", signif(object$phi, digits=4), "\n")
+    cat("\n Correlation Model: ", object$corr.type)
+    cat("\n Family Type: ", object$family.type)
+    cat("\n Link Type: ", object$link.type, "\n")
+
+    cat("\n Number of QIF iterations:", object$niter)
+    cat("\n Number of clusters: ", length(object$cluster.size))
+    cat("\n Maximum cluster size: ", max(object$cluster.size), "\n")
+}
