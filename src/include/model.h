@@ -34,6 +34,7 @@ protected:
 
     bool converged = false;
     int niter = 0;
+    bool balanced; // whether cluster sizes are equal
 
     void update_intermediate_variable();
     virtual double update_beta() = 0;
