@@ -10,6 +10,7 @@ protected:
     const vec y;
     const mat X;
     const vec offset;
+    const vec weight;
     const uvec cluster_bound;
 
     // model structure
@@ -40,7 +41,7 @@ protected:
     virtual double update_beta() = 0;
 public:
     Model() = delete;
-    Model(vec y, mat X, vec offset, uvec cluster_sizes,
+    Model(vec y, mat X, vec offset, vec weight, uvec cluster_sizes,
           Family family, WorkCor cor_type, Control ctl, vec init_beta);
     ~Model() = default;
 

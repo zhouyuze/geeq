@@ -1,10 +1,10 @@
 #include "GEE.h"
 
-GEE::GEE(vec y, mat X, vec offset, uvec cluster_sizes,
+GEE::GEE(vec y, mat X, vec offset, vec weight, uvec cluster_sizes,
          Family family, WorkCor cor_type, Control ctl,
          vec beta, vec alpha, double phi, bool fix, mat cor_mat, int Mv):
         Model(std::move(y), std::move(X), std::move(offset),
-              cluster_sizes, std::move(family),
+              std::move(weight), std::move(cluster_sizes), std::move(family),
               cor_type, ctl, std::move(beta)),
         alpha(std::move(alpha)), phi(phi), scale_fix(fix), Mv(Mv),
         H1(p, p, fill::zeros), H2(p, p, fill::zeros), score(p, fill::zeros) {
@@ -91,8 +91,10 @@ double GEE::update_beta() {
         mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
-        H1 += sub_D.t() * sub_inverse_var * sub_D;
-        score += sub_D.t() * sub_inverse_var * (err.subvec(start, end));
+        mat W = diagmat(weight.subvec(start, end));
+
+        H1 += sub_D.t() * sub_inverse_var * W * sub_D;
+        score += sub_D.t() * sub_inverse_var * W * (err.subvec(start, end));
     }
 
     delta_beta = solve(H1, score);
@@ -125,8 +127,10 @@ double GEE::update_beta_penalty(Penalty_Options op) {
         mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
 
-        H1 += sub_D.t() * sub_inverse_var * sub_D;
-        score += sub_D.t() * sub_inverse_var * (S.subvec(start, end));
+        mat W = diagmat(weight.subvec(start, end));
+
+        H1 += sub_D.t() * sub_inverse_var * W * sub_D;
+        score += sub_D.t() * sub_inverse_var * W * (S.subvec(start, end));
     }
 
     delta_beta = solve(H1 + n * diagmat(E), score - n * (E % beta));
@@ -138,11 +142,11 @@ double GEE::update_beta_penalty(Penalty_Options op) {
 
 void GEE::update_phi() {
     vec resid = (y - mu) / sqrt(var);
-    phi = sum(resid % resid) / (N - p);
+    phi = sum(resid % resid % weight) / (N - p);
 }
 
 void GEE::update_alpha() {
-    vec resid = (y - mu) / sqrt(var);
+    vec resid = (y - mu) % sqrt(weight) / sqrt(var);
 
     switch (cor_type) {
         case Independence:
@@ -278,7 +282,10 @@ double GEE::gaussian_pseudolikelihood() {
         vec sub_S = S.subvec(start, end);
         mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
         mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
-        result += accu(sub_S.t() * sub_inverse_var * sub_S);
+
+        mat W = diagmat(weight.subvec(start, end));
+
+        result += accu(sub_S.t() * sub_inverse_var * W * sub_S);
         result += det(sub_inverse_var);
     }
     return result / 2;
@@ -309,7 +316,8 @@ void GEE::calculate_H2() {
         mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
         mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
         mat sub_D = D.rows(start, end);
+        mat W = diagmat(weight.subvec(start, end));
 
-        H2 += sub_D.t() * sub_inverse_var * (sub_S * sub_S.t()) * sub_inverse_var * sub_D;
+        H2 += sub_D.t() * sub_inverse_var * W * (sub_S * sub_S.t()) * W * sub_inverse_var * sub_D;
     }
 }

@@ -22,10 +22,10 @@ protected:
     void calculate_phi();
     mat get_unstructured_m1();
 public:
-    QIF(vec y, mat X, vec offset, uvec cluster_sizes,
+    QIF(vec y, mat X, vec offset, vec weight, uvec cluster_sizes,
         Family family, WorkCor cor_type, Control ctl, vec beta):
             Model(std::move(y), std::move(X), std::move(offset),
-                  std::move(cluster_sizes), std::move(family),
+                  std::move(weight), std::move(cluster_sizes), std::move(family),
                   cor_type, std::move(ctl), std::move(beta)),
             Q_first_deriv(p, fill::zeros), Q_second_deriv(p, p, fill::zeros) {
         init_base_mat();

@@ -57,10 +57,12 @@ double QIF::update_beta() {
         vec sub_sqrt_A = std_err.subvec(start, end);
         mat sub_D = D.rows(start, end);
 
+        mat W = diagmat(weight.subvec(start, end));
+
         for (int j = 0; j < base_mat.size(); j++) {
             mat sub_inverse_var = base_mat[j] % (1 / (sub_sqrt_A * sub_sqrt_A.t()));
-            gi.subvec(j*p, (j+1)*p-1) = sub_D.t() * sub_inverse_var * (err.subvec(start, end));
-            dev_gi.submat(j*p, 0, (j+1)*p-1, p-1) = -sub_D.t() * sub_inverse_var * sub_D;
+            gi.subvec(j*p, (j+1)*p-1) = sub_D.t() * sub_inverse_var * W * (err.subvec(start, end));
+            dev_gi.submat(j*p, 0, (j+1)*p-1, p-1) = -sub_D.t() * sub_inverse_var * W * sub_D;
         }
 
         g += gi;
@@ -102,11 +104,11 @@ void QIF::iterator() {
 
 void QIF::calculate_phi() {
     vec resid = (y - mu) / sqrt(var);
-    phi = sum(resid % resid) / (N - p);
+    phi = sum(resid % resid % weight) / (N - p);
 }
 
 mat QIF::get_unstructured_m1() {
-    vec resid = (y - mu) / sqrt(var);
+    vec resid = (y - mu) % sqrt(weight) / sqrt(var);
     int size = N / n;
     mat m1(size, size, fill::zeros);
     for (int i = 0; i < n; i++) {

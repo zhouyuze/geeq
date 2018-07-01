@@ -41,7 +41,7 @@ protected:
     vec geodesic_distance();
 
 public:
-    GEE(vec y, mat X, vec offset, uvec cluster_sizes,
+    GEE(vec y, mat X, vec offset, vec weight, uvec cluster_sizes,
         Family family, WorkCor cor_type, Control ctl,
         vec beta, vec alpha, double phi, bool fix, mat cor_mat = zeros(1), int Mv = 0);
 

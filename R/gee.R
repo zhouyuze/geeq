@@ -1,4 +1,4 @@
-gee <- function(formula, data, id, family = gaussian(),
+gee <- function(formula, data, id, family = gaussian(), weight = NULL,
                 corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.alpha = NULL, init.beta = NULL, init.phi = NULL, scale.fix = FALSE,
                 penalty = FALSE, lambda = 10^-3, pindex = vector(), eps = 10^-6,
@@ -70,11 +70,15 @@ gee <- function(formula, data, id, family = gaussian(),
     init.phi = 1
   }
 
+  if (is.null(weight)) {
+    weight = rep(1, length(Y))
+  }
+
   if (penalty) {
-    result <- pgee_c(Y, X, offset, cluster.size, family, corstr,
+    result <- pgee_c(Y, X, offset, weight, cluster.size, family, corstr,
                     init.beta, init.alpha, init.phi, scale.fix, lambda, pindex, eps, maxit, tol, cor.mat, Mv)
   } else {
-    result <- gee_c(Y, X, offset, cluster.size, family, corstr,
+    result <- gee_c(Y, X, offset, weight, cluster.size, family, corstr,
                     init.beta, init.alpha, init.phi, scale.fix, maxit, tol, cor.mat, Mv)
   }
 

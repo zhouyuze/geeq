@@ -1,4 +1,4 @@
-qif <- function(formula, data, id, family = gaussian(),
+qif <- function(formula, data, id, family = gaussian(), weight = NULL,
                 corstr = "independence", Mv = 0, cor.mat = matrix(),
                 init.beta = NULL, maxit = 30, tol = 10^-6) {
   call <- match.call()
@@ -44,7 +44,11 @@ qif <- function(formula, data, id, family = gaussian(),
     stop("Length of init.beta is not correct.")
   }
 
-  result <- qif_c(Y, X, offset, cluster.size, family, corstr, init.beta, maxit, tol)
+  if (is.null(weight)) {
+    weight = rep(1, length(Y))
+  }
+
+  result <- qif_c(Y, X, offset, weight, cluster.size, family, corstr, init.beta, maxit, tol)
 
   result$call <- call
   result$corr.type <- corstr

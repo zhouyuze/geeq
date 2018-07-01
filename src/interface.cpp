@@ -3,8 +3,8 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // [[Rcpp::export]]
-Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
-                  const Rcpp::List family_objs, const std::string corstr,
+Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::vec weight,
+                  const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr,
                   const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                   double lambda, const arma::uvec pindex, double eps, int maxit, double tol,
                   arma::mat cor_mat, int Mv = 0) {
@@ -22,15 +22,15 @@ Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const 
 
     Control ctl(maxit, tol, false);
     Penalty_Options op(lambda, pindex, eps);
-    GEE gee(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix, cor_mat, Mv);
+    GEE gee(Y, X, offset, weight, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix, cor_mat, Mv);
     gee.iterator_penalty(op);
 
     return gee.get_result();
 }
 
 // [[Rcpp::export]]
-Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
-                 const Rcpp::List family_objs, const std::string corstr,
+Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::vec weight,
+                 const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr,
                  const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                  int maxit, double tol, arma::mat cor_mat, int Mv = 0) {
     string familystr = Rcpp::as<string>(family_objs["family"]);
@@ -45,15 +45,15 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
     Family family(familyTypeMap.at(familystr), linkTypeMap.at(linkstr));
 
     Control ctl(maxit, tol, false);
-    GEE gee(Y, X, offset, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix, cor_mat, Mv);
+    GEE gee(Y, X, offset, weight, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix, cor_mat, Mv);
     gee.iterator();
 
     return gee.get_result();
 }
 
 // [[Rcpp::export]]
-Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::uvec cluster_sizes,
-                 const Rcpp::List family_objs, const std::string corstr,
+Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::vec weight,
+                 const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr,
                  const arma::vec init_beta, int maxit, double tol) {
     string familystr = Rcpp::as<string>(family_objs["family"]);
     string linkstr = Rcpp::as<string>(family_objs["link"]);
@@ -68,7 +68,7 @@ Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
 
 
     Control ctl(maxit, tol, false);
-    QIF qif(Y, X, offset, cluster_sizes, family, type, ctl, init_beta);
+    QIF qif(Y, X, offset, weight, cluster_sizes, family, type, ctl, init_beta);
     qif.iterator();
 
     return qif.get_result();
