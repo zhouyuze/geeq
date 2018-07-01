@@ -20,6 +20,7 @@ protected:
     void init_key_mat();
     double update_beta() override;
     void calculate_phi();
+    mat get_unstructured_m1();
 public:
     QIF(vec y, mat X, vec offset, uvec cluster_sizes,
         Family family, WorkCor cor_type, Control ctl, vec beta):

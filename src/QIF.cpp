@@ -17,6 +17,11 @@ void QIF::init_base_mat() {
             m = 2;
             break;
 
+        case Unstructured:
+            base_mat.emplace_back(get_unstructured_m1());
+            m = 2;
+            break;
+
         default:
             m = 1;
             break;
@@ -69,7 +74,12 @@ double QIF::update_beta() {
 
     vec delta_beta = solve(Q_second_deriv, Q_first_deriv);
     beta = beta - delta_beta;
+
     update_intermediate_variable();
+
+    if (cor_type == Unstructured) {
+        base_mat[1] = get_unstructured_m1();
+    }
 
     return sum(abs(delta_beta));
 }
@@ -93,6 +103,21 @@ void QIF::iterator() {
 void QIF::calculate_phi() {
     vec resid = (y - mu) / sqrt(var);
     phi = sum(resid % resid) / (N - p);
+}
+
+mat QIF::get_unstructured_m1() {
+    vec resid = (y - mu) / sqrt(var);
+    int size = N / n;
+    mat m1(size, size, fill::zeros);
+    for (int i = 0; i < n; i++) {
+        int start = i * size;
+        int end = (i + 1) * size - 1;
+
+        vec sub_resid = resid.subvec(start, end);
+        m1 += sub_resid * sub_resid.t();
+    }
+    m1 /= n;
+    return m1;
 }
 
 Rcpp::List QIF::get_result() {

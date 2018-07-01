@@ -24,7 +24,7 @@ qif <- function(formula, data, id, family = gaussian(),
     stop("Problem with family parameter: should contains four functions")
   }
 
-  cor.vec <- c("independence", "fixed", "ar1", "exchangeable", "m-dependent", "unstructure")
+  cor.vec <- c("independence", "fixed", "ar1", "exchangeable", "m-dependent", "unstructured")
   cor.match <- charmatch(corstr, cor.vec)
   if (is.na(cor.match)) {
     stop("Unsupported correlation structure")
