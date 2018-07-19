@@ -57,11 +57,11 @@ variable_select <- function(n, repeat_time, cor_str) {
 }
 
 correlation_select(50, 1000)
-correlation_select(100, 1000)
 variable_select(50, 1000, "independence")
 variable_select(50, 1000, "exchangeable")
 variable_select(50, 1000, "ar1")
 
+correlation_select(100, 1000)
 variable_select(100, 1000, "independence")
 variable_select(100, 1000, "exchangeable")
 variable_select(100, 1000, "ar1")
