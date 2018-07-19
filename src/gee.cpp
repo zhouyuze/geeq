@@ -314,7 +314,7 @@ void GEE::calculate_H2() {
         vec sub_sqrt_A = std_err.subvec(start, end);
         vec sub_S = S.subvec(start, end);
         mat cluster_cor = correlation.submat(0, 0, end - start, end - start);
-        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) / phi).i();
+        mat sub_inverse_var = ((cluster_cor % (sub_sqrt_A * sub_sqrt_A.t())) * phi).i();
         mat sub_D = D.rows(start, end);
         mat W = diagmat(weight.subvec(start, end));
 
