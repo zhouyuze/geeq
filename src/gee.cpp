@@ -265,8 +265,19 @@ mat GEE::get_sandwich() {
 }
 
 double GEE::QIC() {
-    mat tmp = H1 * get_sandwich();
-    return -2 * sum(funcs.likelyhood(y, mu)) / phi + 2 * trace(tmp);
+    mat DAD(p, p, fill::zeros);
+    mat D = X.each_col() % deriv;
+
+    for (int i = 0; i < n; i++) {
+        int start = i == 0 ? 0 : cluster_bound[i - 1];
+        int end = cluster_bound[i] - 1;
+        vec sub_var = var.subvec(start, end);
+        mat sub_D = D.rows(start, end);
+        DAD += sub_D.t() * diagmat(1 / sub_var) * sub_D;
+    }
+
+    return -2 * sum(funcs.likelyhood(y, mu, weight)) / phi
+           + 2 * trace(DAD * get_sandwich());
 }
 
 double GEE::gaussian_pseudolikelihood() {
