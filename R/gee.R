@@ -89,14 +89,16 @@ gee <- function(formula, data, id, family = gaussian(), weight = NULL,
 
   result$call <- call
   result$corr.type <- corstr
-  result$family.type <- family$family
-  result$link.type <- family$link
+  result$beta <- as.numeric(result$beta)
+  names(result$beta) <- colnames(X)
+  result$alpha <- as.numeric(result$alpha)
+  result$family <- family
 
-  result$coefnames <- colnames(X)
   result$formula <- formula
   result$X <- X
   result$offset <- offset
   result$Y <- Y
+  result$mu <- X %*% beta
   result$cluster.size <- cluster.size
 
   class(result) <- "geeq"

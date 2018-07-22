@@ -57,14 +57,17 @@ qif <- function(formula, data, id, family = gaussian(), weight = NULL,
 
   result$call <- call
   result$corr.type <- corstr
-  result$family.type <- family$family
-  result$link.type <- family$link
+  names(result$beta) <- colnames(X)
+  result$beta <- as.numeric(result$beta)
+  result$family <- family
 
-  result$coefnames <- colnames(X)
+
   result$formula <- formula
+  result$weight <- weight
   result$X <- X
   result$offset <- offset
   result$Y <- Y
+  result$mu <- cbind(1, X) %*% beta
   result$cluster.size <- cluster.size
 
   class(result) <- "qif"
