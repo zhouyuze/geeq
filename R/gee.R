@@ -22,6 +22,11 @@ gee <- function(formula, data, id, family = gaussian(), weight = NULL,
   max.cluster <- max(cluster.size)
 
   # structure
+  if (is.character(family)) {
+    family <- get(family, mode = "function", envir = parent.frame(2))
+  } else if (is.function(family)) {
+    family <- family()
+  }
   if (sum(c("linkfun", "linkinv", "variance", "mu.eta") %in% names(family)) != 4) {
     stop("Problem with family parameter: should contains four functions")
   }

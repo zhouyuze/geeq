@@ -16,6 +16,6 @@ fit.dietox.geepack <- geeglm(Weight ~ Time + Cu + Cu * Time, id=Pig, data = diet
 fit.dietox.geem <- geem(Weight ~ Time + Cu + Cu * Time, id=Pig, data = dietox,
                         family=gaussian,corstr="exchangeable")
 fit.dietox.geeq <- gee(Weight ~ Time + Cu + Cu * Time, id=Pig, data = dietox,
-                       family=gaussian(),corstr="exchangeable")
+                       family=gaussian,corstr="exchangeable")
 
 

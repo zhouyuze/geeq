@@ -27,9 +27,9 @@ correlation_select <- function(n, repeat_time) {
   select <- matrix(0, ncol=3, nrow=1)
   for (i in 1:repeat_time) {
     data <- generatedata(n, 3)
-    qic[1] <- gee(y~x1+x2, data, id, family=binomial(), corstr="independence")$QIC
-    qic[2] <- gee(y~x1+x2, data, id, family=binomial(), corstr="exchangeable")$QIC
-    qic[3] <- gee(y~x1+x2, data, id, family=binomial(), corstr="ar1")$QIC
+    qic[1] <- gee(y~x1+x2, data, id, family=binomial, corstr="independence")$QIC
+    qic[2] <- gee(y~x1+x2, data, id, family=binomial, corstr="exchangeable")$QIC
+    qic[3] <- gee(y~x1+x2, data, id, family=binomial, corstr="ar1")$QIC
     index <- which.min(qic)
     select[1, index] <- select[1, index] + 1
   }
@@ -43,11 +43,11 @@ variable_select <- function(n, repeat_time, cor_str) {
   select <- matrix(0, ncol=5, nrow=1)
   for (i in 1:repeat_time) {
     data <- generatedata(n, 3)
-    qic[1] <- gee(y~x1, data, id, family=binomial(), corstr=cor_str)$QIC
-    qic[2] <- gee(y~x1+x2, data, id, family=binomial(), corstr=cor_str)$QIC
-    qic[3] <- gee(y~x1+x3, data, id, family=binomial(), corstr=cor_str)$QIC
-    qic[4] <- gee(y~x1+x2+x3, data, id, family=binomial(), corstr=cor_str)$QIC
-    qic[5] <- gee(y~x1+x2+x3+x4, data, id, family=binomial(), corstr=cor_str)$QIC
+    qic[1] <- gee(y~x1, data, id, family=binomial, corstr=cor_str)$QIC
+    qic[2] <- gee(y~x1+x2, data, id, family=binomial, corstr=cor_str)$QIC
+    qic[3] <- gee(y~x1+x3, data, id, family=binomial, corstr=cor_str)$QIC
+    qic[4] <- gee(y~x1+x2+x3, data, id, family=binomial, corstr=cor_str)$QIC
+    qic[5] <- gee(y~x1+x2+x3+x4, data, id, family=binomial, corstr=cor_str)$QIC
     index <- which.min(qic)
     select[1, index] <- select[1, index] + 1
   }

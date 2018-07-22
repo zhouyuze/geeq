@@ -29,12 +29,12 @@ compare <- function(cluster.size) {
     testdat <- generatedata(beta=c(1,.5),alpha=.2,gamma=.5,X=X,T=5,n=size)
 
     start <- Sys.time()
-    gee(count~time, data=testdat, id=subject, family=poisson(), corstr="ar1")
+    gee(count~time, data=testdat, id=subject, family=poisson, corstr="ar1")
     end <- Sys.time()
     result[i, 2] <- as.double(end - start)
 
     start <- Sys.time()
-    qif(count~time, data=testdat, id=subject, family=poisson(), corstr="ar1")
+    qif(count~time, data=testdat, id=subject, family=poisson, corstr="ar1")
     end <- Sys.time()
     result[i, 3] <- as.double(end - start)
 
