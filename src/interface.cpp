@@ -8,16 +8,8 @@ Rcpp::List pgee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const 
                   const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                   double lambda, const arma::uvec pindex, double eps, int maxit, double tol,
                   arma::mat cor_mat, int Mv = 0) {
-    string familystr = Rcpp::as<string>(family_objs["family"]);
-    string linkstr = Rcpp::as<string>(family_objs["link"]);
-    if (workCorMap.count(corstr) == 0 ||
-        familyTypeMap.count(familystr) == 0 ||
-        linkTypeMap.count(linkstr) == 0) {
-        return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
-    }
-
     WorkCor type = workCorMap.at(corstr);
-    Family family(familyTypeMap.at(familystr), linkTypeMap.at(linkstr));
+    Family family(family_objs);
 
 
     Control ctl(maxit, tol, false);
@@ -33,16 +25,8 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
                  const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr,
                  const arma::vec init_beta, const arma::vec init_alpha, double init_phi, bool scale_fix,
                  int maxit, double tol, arma::mat cor_mat, int Mv = 0) {
-    string familystr = Rcpp::as<string>(family_objs["family"]);
-    string linkstr = Rcpp::as<string>(family_objs["link"]);
-    if (workCorMap.count(corstr) == 0 ||
-            familyTypeMap.count(familystr) == 0 ||
-            linkTypeMap.count(linkstr) == 0) {
-        return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
-    }
-
     WorkCor type = workCorMap.at(corstr);
-    Family family(familyTypeMap.at(familystr), linkTypeMap.at(linkstr));
+    Family family(family_objs);
 
     Control ctl(maxit, tol, false);
     GEE gee(Y, X, offset, weight, cluster_sizes, family, type, ctl, init_beta, init_alpha, init_phi, scale_fix, cor_mat, Mv);
@@ -55,16 +39,8 @@ Rcpp::List gee_c(const arma::vec Y, arma::mat X, const arma::vec offset, const a
 Rcpp::List qif_c(const arma::vec Y, arma::mat X, const arma::vec offset, const arma::vec weight,
                  const arma::uvec cluster_sizes, const Rcpp::List family_objs, const std::string corstr,
                  const arma::vec init_beta, int maxit, double tol) {
-    string familystr = Rcpp::as<string>(family_objs["family"]);
-    string linkstr = Rcpp::as<string>(family_objs["link"]);
-    if (workCorMap.count(corstr) == 0 ||
-        familyTypeMap.count(familystr) == 0 ||
-        linkTypeMap.count(linkstr) == 0) {
-        return Rcpp::List::create(Rcpp::Named("error") = "Unsupported type");
-    }
-
     WorkCor type = workCorMap.at(corstr);
-    Family family(familyTypeMap.at(familystr), linkTypeMap.at(linkstr));
+    Family family(family_objs);
 
 
     Control ctl(maxit, tol, false);

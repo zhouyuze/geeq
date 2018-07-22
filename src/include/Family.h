@@ -5,23 +5,26 @@
 
 class Family {
 private:
-    FamilyType family_type;
-    LinkType link_type;
+    Rcpp::Function link_fun_r;
+    Rcpp::Function link_inv_r;
+    Rcpp::Function variance_r;
+    Rcpp::Function mu_eta_r;
+    Rcpp::Function dev_resids_r;
 public:
-    Family(FamilyType family_type);
+    explicit Family(Rcpp::List family_obj);
 
-    Family(FamilyType family_type, LinkType link_type);
+    vec link_fun(const vec &mu);
 
-    vec (*link_fun)(const vec &mu);
+    vec link_inv(const vec &eta);
 
-    vec (*link_inv)(const vec &eta);
+    vec variance(const vec &mu);
 
-    vec (*derivative)(const vec &eta);
+    vec derivative(const vec &eta);
 
-    vec (*variance)(const vec &mu);
-
-    vec (*likelyhood)(const vec &y, const vec &mu);
+    vec likelyhood(const vec &y, const vec &mu, const vec &wt);
 };
+
+
 
 
 #endif //SRC_FAMILY_H
