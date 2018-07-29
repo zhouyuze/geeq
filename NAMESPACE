@@ -1,3 +1,4 @@
-exportPattern("^[[:alpha:]]+")
+export(geeq)
+S3method(print, geeq)
 importFrom(Rcpp, evalCpp)
 useDynLib(geeq, .registration = TRUE)

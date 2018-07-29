@@ -1,7 +1,7 @@
 #include "model.h"
 
 void Model::update_intermediate_variable() {
-    eta = X * beta;
+    eta = X * beta + offset;
     mu = funcs.link_inv(eta);
     var = funcs.variance(mu);
     deriv = funcs.derivative(eta);

@@ -66,10 +66,10 @@ Rcpp::List GEE::get_result() {
     return Rcpp::List::create(Rcpp::Named("beta")=beta,
                               Rcpp::Named("alpha")=alpha,
                               Rcpp::Named("phi")=phi,
-                              Rcpp::Named("sandwich")=get_sandwich(),
+                              Rcpp::Named("variance")=get_sandwich(),
+                              Rcpp::Named("correlation")=correlation,
                               Rcpp::Named("niter")=niter,
-                              Rcpp::Named("gaussian.pseudolikelihood")=gaussian_pseudolikelihood(),
-                              Rcpp::Named("geodesic.distance")=geodesic_distance(),
+                              Rcpp::Named("converged")=converged,
                               Rcpp::Named("QIC")=QIC());
 }
 
@@ -265,7 +265,7 @@ mat GEE::get_sandwich() {
 }
 
 double GEE::QIC() {
-    mat DAD(p, p, fill::zeros);
+    mat DVD(p, p, fill::zeros);
     mat D = X.each_col() % deriv;
 
     for (int i = 0; i < n; i++) {
@@ -273,11 +273,11 @@ double GEE::QIC() {
         int end = cluster_bound[i] - 1;
         vec sub_var = var.subvec(start, end);
         mat sub_D = D.rows(start, end);
-        DAD += sub_D.t() * diagmat(1 / sub_var) * sub_D;
+        DVD += sub_D.t() * diagmat(1 / (sub_var * phi)) * sub_D;
     }
 
     return -2 * sum(funcs.likelyhood(y, mu, weight)) / phi
-           + 2 * trace(DAD * get_sandwich());
+           + 2 * trace(DVD * get_sandwich());
 }
 
 double GEE::gaussian_pseudolikelihood() {

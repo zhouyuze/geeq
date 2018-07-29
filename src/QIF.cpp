@@ -61,8 +61,8 @@ double QIF::update_beta() {
         for (int j = 0; j < base_mat.size(); j++) {
             mat tmp_mat = base_mat[j].submat(0, 0, end - start, end - start);
             mat sub_inverse_var = tmp_mat % (1 / (sub_sqrt_A * sub_sqrt_A.t()));
-            gi.subvec(j*p, (j+1)*p-1) = sub_D.t() * sub_inverse_var * W * (err.subvec(start, end));
-            dev_gi.submat(j*p, 0, (j+1)*p-1, p-1) = -sub_D.t() * sub_inverse_var * W * sub_D;
+            gi.subvec(j*p, (j+1)*p-1) = sub_D.t() * sub_inverse_var * W * (err.subvec(start, end)) / n;
+            dev_gi.submat(j*p, 0, (j+1)*p-1, p-1) = -sub_D.t() * sub_inverse_var * W * sub_D / n;
         }
 
         g += gi;
@@ -73,7 +73,6 @@ double QIF::update_beta() {
     Q = sum(g.t() * solve(C, g));
     Q_first_deriv = dev_g.t() * solve(C, g);
     Q_second_deriv = dev_g.t() * solve(C, dev_g);
-
     vec delta_beta = solve(Q_second_deriv, Q_first_deriv);
     beta = beta - delta_beta;
 
@@ -126,6 +125,7 @@ Rcpp::List QIF::get_result() {
     return Rcpp::List::create(Rcpp::Named("beta")=beta,
                               Rcpp::Named("phi")=phi,
                               Rcpp::Named("variance")=Q_second_deriv.i(),
-                              Rcpp::Named("Q")=Q,
-                              Rcpp::Named("niter")=niter);
+                              Rcpp::Named("niter")=niter,
+                              Rcpp::Named("converged")=converged,
+                              Rcpp::Named("Q")=Q);
 }
