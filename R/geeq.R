@@ -47,7 +47,7 @@
 #' different correlation structure.
 #'
 #' @param init.beta an optional vector with initial values of beta. If not specificed, then it will
-#' be set to the result of \code{\link[stats]glm}
+#' be set to the result of \code{\link[stats]{glm}}
 #'
 #' @param init.phi an optional initial overdispersion parameter.
 #'
