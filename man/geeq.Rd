@@ -95,6 +95,14 @@ Calculate coefficients of generalized estimating equations. Both generalised est
 equations and quadratic inference function method are provided. Produces an object of
 class 'geeq' which is a fit of the model.
 }
+\examples{
+if (require(geepack)) {
+  data('ohio', package='geepack')
+  fit <- geeq(resp ~ age + smoke + age:smoke, id=id, data=ohio,
+              method='gee', family=binomial(), corstr="exchangeable")
+}
+
+}
 \seealso{
 \code{\link[stats]{glm}}, \code{\link[stats]{family}}
 }

@@ -91,6 +91,13 @@
 #' @seealso
 #' \code{\link[stats]{glm}}, \code{\link[stats]{family}}
 #'
+#' @examples
+#' if (require(geepack)) {
+#'   data('ohio', package='geepack')
+#'   fit <- geeq(resp ~ age + smoke + age:smoke, id=id, data=ohio,
+#'               method='gee', family=binomial(), corstr="exchangeable")
+#' }
+#'
 #' @export
 geeq <- function(formula, id = NULL, data = parent.frame(), family = gaussian, method = 'gee',
                 weights = NULL, waves = NULL, maxit = 30, tol = 10^-6,
