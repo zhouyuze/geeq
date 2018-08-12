@@ -15,9 +15,9 @@ print.geeq <- function(object, ...) {
     }
     cat("\n Scale Parameter: ", signif(object$phi, digits=4), "\n")
 
-    cat("\n Null deviance: ", signif(object$null.deviance, digits=1), "on ",
+    cat("\n Null deviance: ", signif(object$null.deviance, digits=4), "on ",
       object$df.null, " degrees of freedom")
-    cat("\n Residual deviance: ", signif(object$deviance, digits=1), "on ",
+    cat("\n Residual deviance: ", signif(object$deviance, digits=4), "on ",
       object$df.residual, " degrees of freedom\n")
 
     if (object$method == "gee") {

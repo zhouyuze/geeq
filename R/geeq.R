@@ -241,7 +241,7 @@ geeq <- function(formula, id = NULL, data = parent.frame(), family = gaussian, m
   result$offset <- offset
   result$id <- id
   result$weights <- weights
-  result$fitted.values <- X %*% result$beta
+  result$fitted.values <- as.vector(family$linkinv(X %*% result$beta + offset))
   result$cluster.size <- cluster.size
   result$ncluster <- length(cluster.size)
   result$nobs <- dim(dat)[1]
