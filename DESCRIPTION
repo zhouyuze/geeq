@@ -1,12 +1,17 @@
 Package: geeq
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Marginal Regression of Generalised Estimating Equations and Quadratic Inference Function
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: c(
+    person("Yuze", "Zhou", role = c("aut", "cre"),
+    email = "yuzekirito@gmail.com"),
+    person("Jun", "Yan", role = "rev"),
+    person("Yixuan", "Qiu", role = "rev")
+    )
+Maintainer: Yuze Zhou <yuzekirito@gmail.net>
+Description: Calculate coefficients of generalized estimating equations. Both generalised estimating
+    equations and quadratic inference function method are provided.
+License: GPL
 Encoding: UTF-8
 LazyData: true
 Imports: Rcpp (>= 0.12.16)
