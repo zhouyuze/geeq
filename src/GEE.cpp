@@ -6,8 +6,13 @@ GEE::GEE(vec y, mat X, vec offset, vec weight, uvec cluster_sizes,
         Model(std::move(y), std::move(X), std::move(offset),
               std::move(weight), std::move(cluster_sizes), std::move(family),
               cor_type, ctl, std::move(beta)),
-        alpha(std::move(alpha)), phi(phi), scale_fix(fix), Mv(Mv),
-        H1(p, p, fill::zeros), H2(p, p, fill::zeros), score(p, fill::zeros) {
+        alpha(std::move(alpha)),
+        phi(phi),
+        scale_fix(fix),
+        Mv(Mv),
+        H1(p, p, fill::zeros),
+        H2(p, p, fill::zeros),
+        score(p, fill::zeros) {
 
     switch (cor_type) {
         case Fixed:

@@ -41,7 +41,6 @@ double QIF::update_beta() {
     g.zeros();
     C.zeros();
     dev_g.zeros();
-    int size = N / n;
 
     mat D = X.each_col() % deriv;
     vec std_err = sqrt(var);
