@@ -88,7 +88,6 @@ There are some other examples in the `example` folder.
 
 ### Features in the future
 
-* **QIC Criteria:** Currently, `geeq` could produce a QIC value for selection. However, the value could not match that of SAS, we will fix this problem soon.
 * **Penalized Generalized Estimating Equations:** PGEE is important for variable selection. We've implemented solving penalized generalized estimating equations but not tuning paramter estimation. It's also essential to estimate the tuning paramter from users' perspective, so we decide not to export the interface now. The tuning parameter estimation part is in developing.
 
 [Reference](https://github.com/zhouyuze/geeq/wiki/Reference)

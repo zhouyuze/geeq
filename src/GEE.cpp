@@ -278,10 +278,10 @@ double GEE::QIC() {
         int end = cluster_bound[i] - 1;
         vec sub_var = var.subvec(start, end);
         mat sub_D = D.rows(start, end);
-        DVD += sub_D.t() * diagmat(1 / (sub_var * phi)) * sub_D;
+        DVD += sub_D.t() * diagmat(1 / (sub_var)) * sub_D;
     }
 
-    return -2 * sum(funcs.likelyhood(y, mu, weight)) / phi
+    return -2 * sum(funcs.likelyhood(y, mu, weight))
            + 2 * trace(DVD * get_sandwich());
 }
 
