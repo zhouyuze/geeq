@@ -1,5 +1,7 @@
 ## R package for longitudinal data analysis
 
+This repository is the result of the 2018 Google Summer of Code project "[GEE and QIF for clustered data regression](https://summerofcode.withgoogle.com/projects/#4738290838667264)".
+
 ### Introduction
 
 `geeq` stands for  generalized estimating equations(GEE) and quadratic inference functions(QIF). Both methods focus on longitudinal or clustered data analysis, where within-cluster correlation has to be accounted for. Package `geeq` implements both of methods based on `RcppArmadillo` and also provided some new features.
